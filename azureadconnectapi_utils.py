@@ -1,5 +1,5 @@
 from hashlib import pbkdf2_hmac
-import hashlib,binascii
+from passlib.hash import nthash
 import random
 from commonutils import binarytoxml,xmltobinary
 import requests
@@ -15,7 +15,7 @@ def create_aadhash(hashnt=None,iterations = 1000,password=None):
     if not hashnt:
         if not password:
             raise Exception('Please provide hashnt or password')
-        hashnt = binascii.hexlify(hashlib.new('md4', password.encode('utf-16le')).digest()).decode('utf-8').upper()
+        hashnt = nthash.encrypt(password).upper()
     if len(hashnt) != 32:
         raise Exception('Invalid hash length!')
 
