@@ -1,0 +1,3 @@
+azure-graphrbac
+requests
+passlib
