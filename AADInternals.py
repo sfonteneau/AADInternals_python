@@ -26,6 +26,7 @@ class AADInternals():
     def search_user(self,upn_or_object_id):
         return self.graphrbac_client.users.get(upn_or_object_id)
 
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
     def set_userpassword(self,cloudanchor=None,sourceanchor=None,userprincipalname=None,password=None,hashnt=None,changedate=None,iterations=1000,):
         tenant_id = self.tenant_id
         credentialdata = self.create_aadhash(hashnt=hashnt,password=password,iterations=iterations)
@@ -71,11 +72,8 @@ class AADInternals():
 
 
 
-
+    # https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L279
     def create_aadhash(self,hashnt=None,iterations = 1000,password=None):
-        # literal convert powershell to python script :
-        # https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L279
-
         if not hashnt:
             if not password:
                 raise Exception('Please provide hashnt or password')
@@ -97,7 +95,7 @@ class AADInternals():
         aadhash = "v1;PPH1_MD4,%s,%s,%s;" % (salthex,iterations,key)
         return aadhash
 
-
+    #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L77
     def create_syncenvelope(self,token,command,body,message_id,server="adminwebservice.microsoftonline.com",binary=True,isinstalledondc=False,richcoexistenceenabled=False,version=1):
 
         if version == 2:
@@ -138,7 +136,7 @@ class AADInternals():
         else:
             return envelope
 
-
+    #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L166
     def call_adsyncapi(self,envelope,command,tenant_id,message_id,server="adminwebservice.microsoftonline.com"):
         headers = {
             "Host":server,
