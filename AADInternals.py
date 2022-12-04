@@ -1,5 +1,7 @@
 from azure.common.credentials import UserPassCredentials
+from azure.graphrbac.models import UserCreateParameters,UserUpdateParameters
 from azure.graphrbac import GraphRbacManagementClient
+from azure.graphrbac.models import PasswordProfile
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
 from wcf.xml2records import XMLParser
@@ -22,6 +24,48 @@ class AADInternals():
         self.tenant_id = self.credentials.token['tenant_id']
         self.token = self.credentials.token['access_token']
         self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
+
+    def create_user(self,hashnt=None ,user_principal_name=None,immutable_id=None,account_enabled=True,*arg, **args):
+        password_profile=PasswordProfile(
+                    password="ANFJZN6868--7897932JKFNKjZFNDNS",
+                    force_change_password_next_login=False
+                    )
+
+        newuser= UserCreateParameters(*arg, **args,user_principal_name=user_principal_name,password_profile=password_profile,immutable_id=None,account_enabled=account_enabled)
+        r=  self.graphrbac_client.users.create(newuser)
+        return self.set_immutable_id(user_principal_name,immutable_id)
+        if hashnt:
+            hashnt = self.set_userpassword(hashnt=hashnt,cloudanchor='User_' + r.object_id)
+
+    def set_immutable_id(self,userPrincipalName,sourceanchor):
+        tenant_id = self.tenant_id
+
+        command = "ProvisionAzureADSyncObjects"
+#                    <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+#                    <c:KeyValueOfstringanyType><c:Key>displayName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">testsf41</c:Value></c:KeyValueOfstringanyType>
+#                    <c:KeyValueOfstringanyType><c:Key>userPrincipalName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+        body =  r"""<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+    <syncRequest xmlns:b="http://schemas.microsoft.com/online/aws/change/2014/06" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+        <b:SyncObjects>
+            <b:AzureADSyncObject>
+                <b:PropertyValues xmlns:c="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
+                    <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+                    <c:KeyValueOfstringanyType><c:Key>displayName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">testsf41</c:Value></c:KeyValueOfstringanyType>
+                    <c:KeyValueOfstringanyType><c:Key>userPrincipalName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+                </b:PropertyValues>
+                <b:SyncObjectType>User</b:SyncObjectType>
+                <b:SyncOperation>Set</b:SyncOperation>
+            </b:AzureADSyncObject>
+        </b:SyncObjects>
+    </syncRequest>
+</ProvisionAzureADSyncObjects>""" % (sourceanchor,userPrincipalName)
+
+        message_id = str(uuid.uuid4())
+        command = "ProvisionAzureADSyncObjects"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
+        return self.binarytoxml(response)
+
 
     def search_user(self,upn_or_object_id):
         return self.graphrbac_client.users.get(upn_or_object_id)
