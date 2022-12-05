@@ -1,7 +1,5 @@
 from azure.common.credentials import UserPassCredentials
-from azure.graphrbac.models import UserCreateParameters,UserUpdateParameters
 from azure.graphrbac import GraphRbacManagementClient
-from azure.graphrbac.models import PasswordProfile
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
 from wcf.xml2records import XMLParser
@@ -26,19 +24,9 @@ class AADInternals():
         self.token = self.credentials.token['access_token']
         self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
 
-    def create_user(self,hashnt=None ,user_principal_name=None,immutable_id=None,account_enabled=True,*arg, **args):
-        password_profile=PasswordProfile(
-                    password="ANFJZN6868--7897932JKFNKjZFNDNS",
-                    force_change_password_next_login=False
-                    )
-
-        newuser= UserCreateParameters(*arg, **args,user_principal_name=user_principal_name,password_profile=password_profile,immutable_id=None,account_enabled=account_enabled)
-        r=  self.graphrbac_client.users.create(newuser,proxies=self.proxies)
-        return self.set_immutable_id(user_principal_name,immutable_id)
-        if hashnt:
-            hashnt = self.set_userpassword(hashnt=hashnt,cloudanchor='User_' + r.object_id)
-
-    def set_immutable_id(self,userPrincipalName,sourceanchor):
+    #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L570
+    def set_azureadobject(self,user_principal_name,sourceanchor):
+        #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L571
         tenant_id = self.tenant_id
 
         command = "ProvisionAzureADSyncObjects"
@@ -51,7 +39,6 @@ class AADInternals():
             <b:AzureADSyncObject>
                 <b:PropertyValues xmlns:c="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
                     <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
-                    <c:KeyValueOfstringanyType><c:Key>displayName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">testsf41</c:Value></c:KeyValueOfstringanyType>
                     <c:KeyValueOfstringanyType><c:Key>userPrincipalName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
                 </b:PropertyValues>
                 <b:SyncObjectType>User</b:SyncObjectType>
@@ -59,7 +46,7 @@ class AADInternals():
             </b:AzureADSyncObject>
         </b:SyncObjects>
     </syncRequest>
-</ProvisionAzureADSyncObjects>""" % (sourceanchor,userPrincipalName)
+</ProvisionAzureADSyncObjects>""" % (sourceanchor,user_principal_name)
 
         message_id = str(uuid.uuid4())
         command = "ProvisionAzureADSyncObjects"
