@@ -56,7 +56,7 @@ class AADInternals():
 
 
     def search_user(self,upn_or_object_id):
-        return self.graphrbac_client.users.get(upn_or_object_id)
+        return self.graphrbac_client.users.get(upn_or_object_id,proxies=self.proxies)
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
     def set_userpassword(self,cloudanchor=None,sourceanchor=None,userprincipalname=None,password=None,hashnt=None,changedate=None,iterations=1000,):
