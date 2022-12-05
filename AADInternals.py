@@ -19,8 +19,9 @@ aadsync_client_build=  "1.5.29.0"
 
 class AADInternals():
 
-    def __init__(self, mail=None, password=None):
-        self.credentials = UserPassCredentials(mail, password, resource="https://graph.windows.net")
+    def __init__(self, mail=None, password=None,proxies={}):
+        self.proxies=proxies
+        self.credentials = UserPassCredentials(mail, password, resource="https://graph.windows.net",proxies=proxies)
         self.tenant_id = self.credentials.token['tenant_id']
         self.token = self.credentials.token['access_token']
         self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
@@ -32,7 +33,7 @@ class AADInternals():
                     )
 
         newuser= UserCreateParameters(*arg, **args,user_principal_name=user_principal_name,password_profile=password_profile,immutable_id=None,account_enabled=account_enabled)
-        r=  self.graphrbac_client.users.create(newuser)
+        r=  self.graphrbac_client.users.create(newuser,proxies=self.proxies)
         return self.set_immutable_id(user_principal_name,immutable_id)
         if hashnt:
             hashnt = self.set_userpassword(hashnt=hashnt,cloudanchor='User_' + r.object_id)
@@ -196,7 +197,7 @@ class AADInternals():
             "x-ms-aadmsods-apiaction": command
         }
 
-        r = requests.post("https://%s/provisioningservice.svc" % server, headers=headers,data=envelope)
+        r = requests.post("https://%s/provisioningservice.svc" % server, headers=headers,data=envelope,proxies=self.proxies)
 
         return r.content
 
