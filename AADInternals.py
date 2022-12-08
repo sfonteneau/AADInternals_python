@@ -99,8 +99,11 @@ class AADInternals():
         command = "ProvisionCredentials"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
-        return self.binarytoxml(response)
+        respxml = self.binarytoxml(response)
+        if not "<b:Result>0</b:Result>" in str(respxml):
+            raise Exception(respxml)
 
+        return respxml
 
 
 
@@ -193,7 +196,11 @@ class AADInternals():
     def binarytoxml(self,binaryxml):
         fp = io.BytesIO(binaryxml)
         records = Record.parse(fp)
-        return print_records(records)
+        fp = io.StringIO()
+        print_records(records,fp=fp)
+        fp.seek(0)
+        data = fp.read()
+        return str(data)
 
     def xmltobinary(self,dataxml):
         r = XMLParser.parse(dataxml)
