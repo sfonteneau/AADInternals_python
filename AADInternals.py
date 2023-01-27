@@ -181,6 +181,24 @@ class AADInternals():
     def search_user(self,upn_or_object_id):
         return self.graphrbac_client.users.get(upn_or_object_id,proxies=self.proxies)
 
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L927
+    def get_syncobjects(self,fullsync=True,version=2):
+        if version==2:
+            txtvers="2"
+        else:
+            txtvers=""
+        body = '''<ReadBackAzureADSyncObjects%s xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+            <includeLicenseInformation>true</includeLicenseInformation>
+            <inputCookie i:nil="true" xmlns:i="http://www.w3.org/2001/XMLSchema-instance"></inputCookie>
+            <isFullSync>%s</isFullSync>
+        </ReadBackAzureADSyncObjects%s>''' % (txtvers,fullsync,txtvers)
+        message_id = str(uuid.uuid4())
+        command = "ReadBackAzureADSyncObjects%s" % txtvers
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
     def set_userpassword(self,cloudanchor=None,sourceanchor=None,userprincipalname=None,password=None,hashnt=None,changedate=None,iterations=1000,):
         tenant_id = self.tenant_id
