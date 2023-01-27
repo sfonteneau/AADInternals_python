@@ -2,9 +2,16 @@ from azure.common.credentials import UserPassCredentials
 from azure.graphrbac import GraphRbacManagementClient
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
-from wcf.xml2records import XMLParser
-from wcf.records import dump_records
-from wcf.records import Record, print_records
+
+import sys
+import os
+
+if "__file__" in locals():
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),'python_wcfbin'))
+
+from python_wcfbin.wcf.xml2records import XMLParser
+from python_wcfbin.wcf.records import dump_records
+from python_wcfbin.wcf.records import Record, print_records
 import io
 import requests
 import random
@@ -25,20 +32,18 @@ class AADInternals():
         self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
 
     #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L570
-    def set_azureadobject(self,user_principal_name,sourceanchor):
+    def set_azureadobject(self,user_principal_name,sourceanchor, account_enabled=True):
         #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L571
         tenant_id = self.tenant_id
 
         command = "ProvisionAzureADSyncObjects"
-#                    <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
-#                    <c:KeyValueOfstringanyType><c:Key>displayName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">testsf41</c:Value></c:KeyValueOfstringanyType>
-#                    <c:KeyValueOfstringanyType><c:Key>userPrincipalName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
         body =  r"""<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
     <syncRequest xmlns:b="http://schemas.microsoft.com/online/aws/change/2014/06" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
         <b:SyncObjects>
             <b:AzureADSyncObject>
                 <b:PropertyValues xmlns:c="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
                     <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+                    <c:KeyValueOfstringanyType><c:Key>accountEnabled</c:Key><c:Value i:type="d:boolean" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
                     <c:KeyValueOfstringanyType><c:Key>userPrincipalName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
                 </b:PropertyValues>
                 <b:SyncObjectType>User</b:SyncObjectType>
@@ -46,7 +51,7 @@ class AADInternals():
             </b:AzureADSyncObject>
         </b:SyncObjects>
     </syncRequest>
-</ProvisionAzureADSyncObjects>""" % (sourceanchor,user_principal_name)
+</ProvisionAzureADSyncObjects>""" % (sourceanchor, str(account_enabled).lower(), user_principal_name)
 
         message_id = str(uuid.uuid4())
         command = "ProvisionAzureADSyncObjects"
