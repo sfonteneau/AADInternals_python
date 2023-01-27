@@ -31,6 +31,124 @@ class AADInternals():
         self.token = self.credentials.token['access_token']
         self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
 
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L8
+    def get_syncconfiguration(self):
+        body = '''<GetCompanyConfiguration xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+            <includeLicenseInformation>false</includeLicenseInformation>
+        </GetCompanyConfiguration>'''
+        message_id = str(uuid.uuid4())
+        command = "GetCompanyConfiguration"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L515
+    def update_syncfeatures(self,feature=None):
+        body = '''<SetCompanyDirsyncFeatures xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+            <dirsyncFeatures>%s</dirsyncFeatures>
+        </SetCompanyDirsyncFeatures>''' % feature
+        message_id = str(uuid.uuid4())
+        command = "SetCompanyDirsyncFeatures"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L784
+    def remove_azureadoject(self,sourceanchor=None,objecttype=None):
+        body = '''<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+			<syncRequest xmlns:b="http://schemas.microsoft.com/online/aws/change/2014/06" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+				<b:SyncObjects>
+					<b:AzureADSyncObject>
+						<b:PropertyValues xmlns:c="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
+                            <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+                        </b:PropertyValues>
+						<b:SyncObjectType>%s</b:SyncObjectType>
+						<b:SyncOperation>Delete</b:SyncOperation>
+					</b:AzureADSyncObject>
+				</b:SyncObjects>
+			</syncRequest>
+		</ProvisionAzureADSyncObjects>''' % (sourceanchor,objecttype)
+        message_id = str(uuid.uuid4())
+        command = "ProvisionAzureADSyncObjects"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1585
+    def get_kerberosdomainsyncconfig(self):
+        body = '''<GetKerberosDomainSyncConfig xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+        </GetKerberosDomainSyncConfig>'''
+        message_id = str(uuid.uuid4())
+        command = "GetKerberosDomainSyncConfig"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1665
+    def get_kerberosdomain(self,domainname):
+        body = '''<GetKerberosDomain xmlns="http://schemas.microsoft.com/online/aws/change/2010/01" i:nil="true" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+            <dnsDomainName>%s</dnsDomainName>
+        </GetKerberosDomain>''' % domainname
+        message_id = str(uuid.uuid4())
+        command = "GetKerberosDomain"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1743
+    def get_windowscredentialssyncconfig(self):
+        body = '''<GetMonitoringTenantCertificate xmlns="http://schemas.microsoft.com/online/aws/change/2010/01"></GetMonitoringTenantCertificate>'''
+        message_id = str(uuid.uuid4())
+        command = "GetMonitoringTenantCertificate"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1800
+    def get_windowscredentialssyncconfig(self):
+        body = '''<GetWindowsCredentialsSyncConfig xmlns="http://schemas.microsoft.com/online/aws/change/2010/01"></GetWindowsCredentialsSyncConfig>'''
+        message_id = str(uuid.uuid4())
+        command = "GetWindowsCredentialsSyncConfig"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1881
+    def get_syncdeviceconfiguration(self):
+        body = '''<GetDeviceConfiguration xmlns="http://schemas.microsoft.com/online/aws/change/2010/01"></GetDeviceConfiguration>'''
+        message_id = str(uuid.uuid4())
+        command = "GetDeviceConfiguration"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1972
+    def get_synccapabilities(self):
+        body = '''<Capabilities xmlns="http://schemas.microsoft.com/online/aws/change/2010/01" />'''
+        message_id = str(uuid.uuid4())
+        command = "Capabilities"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L872
+    def finalize_export(self,count=0):
+        body = '''<FinalizeExport xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+			<totalExported>%s</totalExported>
+			<successfulExportCount>%s</successfulExportCount>
+		</FinalizeExport>''' % (count,count)
+        message_id = str(uuid.uuid4())
+        command = "FinalizeExport"
+        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
+        return self.binarytoxml(response)
+
     #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L570
     def set_azureadobject(self,user_principal_name,sourceanchor, account_enabled=True):
         #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L571
