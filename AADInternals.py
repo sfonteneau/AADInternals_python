@@ -151,26 +151,25 @@ class AADInternals():
         return self.binarytoxml(response)
 
     #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L570
-    def set_azureadobject(self,user_principal_name,sourceanchor, account_enabled=True):
-        #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L571
+    def set_azureadobject(self,user_principal_name,sourceanchor, usertype='User',operation_type="Set",account_enabled=True):
         tenant_id = self.tenant_id
 
         command = "ProvisionAzureADSyncObjects"
-        body =  r"""<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
+        body =  rf"""<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
     <syncRequest xmlns:b="http://schemas.microsoft.com/online/aws/change/2014/06" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
         <b:SyncObjects>
             <b:AzureADSyncObject>
                 <b:PropertyValues xmlns:c="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
-                    <c:KeyValueOfstringanyType><c:Key>SourceAnchor</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
-                    <c:KeyValueOfstringanyType><c:Key>accountEnabled</c:Key><c:Value i:type="d:boolean" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
-                    <c:KeyValueOfstringanyType><c:Key>userPrincipalName</c:Key><c:Value i:type="d:string" xmlns:d="http://www.w3.org/2001/XMLSchema">%s</c:Value></c:KeyValueOfstringanyType>
+                    {self.Add_PropertyValue("SourceAnchor",Value=sourceanchor)}
+                    {self.Add_PropertyValue("accountEnabled",Value=account_enabled,Type="bool")}
+                    {self.Add_PropertyValue("userPrincipalName",Value=user_principal_name)}
                 </b:PropertyValues>
-                <b:SyncObjectType>User</b:SyncObjectType>
-                <b:SyncOperation>Set</b:SyncOperation>
+                <b:SyncObjectType>{usertype}</b:SyncObjectType>
+                <b:SyncOperation>{operation_type}</b:SyncOperation>
             </b:AzureADSyncObject>
         </b:SyncObjects>
     </syncRequest>
-</ProvisionAzureADSyncObjects>""" % (sourceanchor, str(account_enabled).lower(), user_principal_name)
+</ProvisionAzureADSyncObjects>"""
 
         message_id = str(uuid.uuid4())
         command = "ProvisionAzureADSyncObjects"
@@ -339,6 +338,34 @@ class AADInternals():
 
         return r.content
 
+
+    #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L228
+    #generate by chatgpt
+    def Add_PropertyValue(self,Key: str, Value, Type: str = "string"):
+        if Value is not None:
+            PropBlock = "<c:KeyValueOfstringanyType><c:Key>" + Key + "</c:Key>"
+            if Type == "long":
+                PropBlock += "<c:Value i:type='d:long' xmlns:d='http://www.w3.org/2001/XMLSchema'>" + str(Value) + "</c:Value>"
+            elif Type == "bool":
+                PropBlock += "<c:Value i:type='d:boolean' xmlns:d='http://www.w3.org/2001/XMLSchema'>" + str(Value).lower() + "</c:Value>"
+            elif Type == "base64":
+                PropBlock += "<c:Value i:type='d:base64Binary' xmlns:d='http://www.w3.org/2001/XMLSchema'>" + Value + "</c:Value>"
+            elif Type == "ArrayOfstring":
+                PropBlock += "<c:Value i:type='c:ArrayOfstring'>"
+                for stringValue in Value:
+                    PropBlock += "<c:string>" + stringValue + "</c:string>"
+                PropBlock += "</c:Value>"
+            elif Type == "ArrayOfbase64":
+                PropBlock += "<c:Value i:type='c:ArrayOfbase64Binary'>"
+                for stringValue in Value:
+                    PropBlock += "<c:base64Binary>" + stringValue + "</c:base64Binary>"
+                PropBlock += "</c:Value>"
+            else:
+                PropBlock += "<c:Value i:type='d:string' xmlns:d='http://www.w3.org/2001/XMLSchema'>" + Value + "</c:Value>"
+            PropBlock += "</c:KeyValueOfstringanyType>"
+            return PropBlock
+        else:
+            return ""
 
 
     def binarytoxml(self,binaryxml):
