@@ -17,6 +17,7 @@ import requests
 import random
 import uuid
 import datetime
+import xmltodict
 
 aadsync_server=        "adminwebservice.microsoftonline.com"
 aadsync_client_version="8.0"
@@ -177,9 +178,15 @@ class AADInternals():
         response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
         return self.binarytoxml(response)
 
-
+    #Official api for search
     def search_user(self,upn_or_object_id):
         return self.graphrbac_client.users.get(upn_or_object_id,proxies=self.proxies)
+
+    def list_users(self,):
+        result = []
+        for entry in list(self.graphrbac_client.users.list(proxies=self.proxies)) :
+            result.append(entry.as_dict())
+        return result
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L927
     def get_syncobjects(self,fullsync=True,version=2):
@@ -196,7 +203,7 @@ class AADInternals():
         command = "ReadBackAzureADSyncObjects%s" % txtvers
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        return self.binarytoxml(response)
+        return  xmltodict.parse(self.binarytoxml(response))["s:Envelope"]["s:Body"]["ReadBackAzureADSyncObjects2Response"]['ReadBackAzureADSyncObjects2Result']['b:ResultObjects']['b:AzureADSyncObject']
 
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
