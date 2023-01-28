@@ -150,8 +150,34 @@ class AADInternals():
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
-    #https://github.com/Gerenios/AADInternals/blob/master/AzureADConnectAPI.ps1#L570
-    def set_azureadobject(self,user_principal_name,sourceanchor, usertype='User',operation_type="Set",account_enabled=True):
+    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L570
+    def set_azureadobject(self,
+                user_principal_name,
+                sourceanchor, 
+                usertype='User',
+                operation_type="Set",
+                account_enabled=True,
+                surname=None, 
+                onPremisesSamAccountName=None, 
+                onPremisesDistinguishedName=None, 
+                onPremiseSecurityIdentifier=None, 
+                netBiosName=None, 
+                lastPasswordChangeTimestamp=None, 
+                givenName=None, 
+                dnsDomainName=None, 
+                displayName=None, 
+                countryCode=None, 
+                commonName=None,
+                cloudMastered=None, 
+                usageLocation=None, 
+                proxyAddresses=None, 
+                thumbnailPhoto=None, 
+                groupMembers=None, 
+                deviceId=None, 
+                deviceOSType=None, 
+                deviceTrustType=None, 
+                userCertificate=None, 
+                ):
         tenant_id = self.tenant_id
 
         command = "ProvisionAzureADSyncObjects"
@@ -163,6 +189,27 @@ class AADInternals():
                     {self.Add_PropertyValue("SourceAnchor",Value=sourceanchor)}
                     {self.Add_PropertyValue("accountEnabled",Value=account_enabled,Type="bool")}
                     {self.Add_PropertyValue("userPrincipalName",Value=user_principal_name)}
+                    {self.Add_PropertyValue("commonName",Value=commonName)}
+                    {self.Add_PropertyValue("countryCode",Value=countryCode,Type="long")}
+                    {self.Add_PropertyValue("displayName",Value=displayName)}
+                    {self.Add_PropertyValue("dnsDomainName",Value=dnsDomainName)}
+                    {self.Add_PropertyValue("givenName",Value=givenName)}
+                    {self.Add_PropertyValue("lastPasswordChangeTimestamp",Value=lastPasswordChangeTimestamp)}
+                    {self.Add_PropertyValue("netBiosName",Value=netBiosName)}
+                    {self.Add_PropertyValue("onPremiseSecurityIdentifier",Value=onPremiseSecurityIdentifier,Type='base64')}
+                    {self.Add_PropertyValue("onPremisesDistinguishedName",Value=onPremisesDistinguishedName)}
+                    {self.Add_PropertyValue("onPremisesSamAccountName",Value=onPremisesSamAccountName)}
+                    {self.Add_PropertyValue("surname",Value=surname)}
+                    {self.Add_PropertyValue("cloudMastered",Value=cloudMastered,Type="bool")}
+                    {self.Add_PropertyValue("usageLocation",Value=usageLocation)}
+                    {self.Add_PropertyValue("ThumbnailPhoto",Value=thumbnailPhoto)}
+                    {self.Add_PropertyValue("proxyAddresses",Value=proxyAddresses,Type="ArrayOfstring")}
+                    {self.Add_PropertyValue("member",Value=groupMembers,Type="ArrayOfstring")}
+                    {self.Add_PropertyValue("deviceId",Value=deviceId,Type="base64")}
+                    {self.Add_PropertyValue("deviceTrustType",Value=deviceTrustType)}
+                    {self.Add_PropertyValue("deviceOSType",Value=deviceOSType)}
+                    {self.Add_PropertyValue("userCertificate",Value=userCertificate,Type='ArrayOfbase64')}
+
                 </b:PropertyValues>
                 <b:SyncObjectType>{usertype}</b:SyncObjectType>
                 <b:SyncOperation>{operation_type}</b:SyncOperation>
