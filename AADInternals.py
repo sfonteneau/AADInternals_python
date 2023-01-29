@@ -185,6 +185,8 @@ class AADInternals():
                 state=None,
                 department=None,
                 telephoneNumber=None,
+                company=None,
+                employeeType=None
                 ):
         tenant_id = self.tenant_id
 
@@ -225,7 +227,8 @@ class AADInternals():
                     {self.Add_PropertyValue("state",Value=state)}
                     {self.Add_PropertyValue("country",Value=country)}
                     {self.Add_PropertyValue("telephoneNumber",Value=telephoneNumber)}
-
+                    {self.Add_PropertyValue("company",Value=company)}
+                    {self.Add_PropertyValue("employeeType",Value=employeeType)}
                 </b:PropertyValues>
                 <b:SyncObjectType>{usertype}</b:SyncObjectType>
                 <b:SyncOperation>{operation_type}</b:SyncOperation>
