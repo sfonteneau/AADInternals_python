@@ -221,8 +221,22 @@ class AADInternals():
         message_id = str(uuid.uuid4())
         command = "ProvisionAzureADSyncObjects"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
-        response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
-        return self.binarytoxml(response)
+        rawresponse = self.call_adsyncapi(envelope,command,tenant_id,message_id)
+        newresponse = self.xml_to_result(rawresponse,command)['b:SyncObjectResults']['b:AzureADSyncObjectResult']
+        if newresponse['b:ResultCode'] == 'Failure':
+            raise Exception (newresponse['b:ResultErrorDescription'])
+        return newresponse
+
+    def xml_to_result(self,response,command):
+        dataxml = xmltodict.parse(self.binarytoxml(response))
+        try:
+            return dataxml["s:Envelope"]["s:Body"]["%sResponse" % command]['%sResult' % command]
+        except KeyError:
+            if 's:Fault' in dataxml.get("s:Envelope",{}).get("s:Body",{}):
+                raise Exception(dataxml["s:Envelope"]["s:Body"]['s:Fault']['s:Reason']['s:Text']['#text'])
+            else:
+                raise Exception(dataxml)
+
 
     #Official api for search
     def search_user(self,upn_or_object_id):
@@ -249,8 +263,7 @@ class AADInternals():
         command = "ReadBackAzureADSyncObjects%s" % txtvers
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        return  xmltodict.parse(self.binarytoxml(response))["s:Envelope"]["s:Body"]["ReadBackAzureADSyncObjects2Response"]['ReadBackAzureADSyncObjects2Result']['b:ResultObjects']['b:AzureADSyncObject']
-
+        return  self.xml_to_result(response,command)['b:ResultObjects']['b:AzureADSyncObject']
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
     def set_userpassword(self,cloudanchor=None,sourceanchor=None,userprincipalname=None,password=None,hashnt=None,changedate=None,iterations=1000,):
@@ -293,11 +306,10 @@ class AADInternals():
         command = "ProvisionCredentials"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
-        respxml = self.binarytoxml(response)
-        if not "<b:Result>0</b:Result>" in str(respxml):
-            raise Exception(respxml)
-
-        return respxml
+        formatresponse = self.xml_to_result(response,command)['b:Results']['b:SyncCredentialsChangeResult']
+        if formatresponse['b:Result'] != '0':
+            raise Exception(formatresponse['b:ExtendedErrorInformation'])
+        return formatresponse
 
 
 

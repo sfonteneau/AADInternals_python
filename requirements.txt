@@ -1,3 +1,4 @@
 azure-graphrbac
 requests
 passlib
+xmltodict
