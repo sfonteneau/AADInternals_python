@@ -41,7 +41,7 @@ class AADInternals():
         command = "GetCompanyConfiguration"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        return self.binarytoxml(response)
+        return self.xml_to_result(response,command)
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L515
     def update_syncfeatures(self,feature=None):
@@ -177,6 +177,14 @@ class AADInternals():
                 deviceOSType=None, 
                 deviceTrustType=None, 
                 userCertificate=None, 
+                physicalDeliveryOfficeName=None,
+                employeeId=None,
+                country=None,
+                city=None,
+                streetAddress=None,
+                state=None,
+                department=None,
+                telephoneNumber=None,
                 ):
         tenant_id = self.tenant_id
 
@@ -209,6 +217,14 @@ class AADInternals():
                     {self.Add_PropertyValue("deviceTrustType",Value=deviceTrustType)}
                     {self.Add_PropertyValue("deviceOSType",Value=deviceOSType)}
                     {self.Add_PropertyValue("userCertificate",Value=userCertificate,Type='ArrayOfbase64')}
+                    {self.Add_PropertyValue("physicalDeliveryOfficeName",Value=physicalDeliveryOfficeName)}
+                    {self.Add_PropertyValue("department",Value=department)}
+                    {self.Add_PropertyValue("employeeId",Value=employeeId)}
+                    {self.Add_PropertyValue("streetAddress",Value=streetAddress)}
+                    {self.Add_PropertyValue("city",Value=city)}
+                    {self.Add_PropertyValue("state",Value=state)}
+                    {self.Add_PropertyValue("country",Value=country)}
+                    {self.Add_PropertyValue("telephoneNumber",Value=telephoneNumber)}
 
                 </b:PropertyValues>
                 <b:SyncObjectType>{usertype}</b:SyncObjectType>
