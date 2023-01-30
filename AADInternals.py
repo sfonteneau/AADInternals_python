@@ -152,8 +152,8 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L570
     def set_azureadobject(self,
-                user_principal_name,
-                sourceanchor, 
+                sourceanchor,
+                user_principal_name=None,
                 usertype='User',
                 operation_type="Set",
                 account_enabled=True,
@@ -190,7 +190,8 @@ class AADInternals():
                 facsimileTelephoneNumber=None,
                 mail=None,
                 mobile=None,
-                title=None
+                title=None,
+                SecurityEnabled=None,
                 ):
         tenant_id = self.tenant_id
 
@@ -237,6 +238,7 @@ class AADInternals():
                     {self.Add_PropertyValue("mail",Value=mail)}
                     {self.Add_PropertyValue("mobile",Value=mobile)}
                     {self.Add_PropertyValue("title",Value=title)}
+                    {self.Add_PropertyValue("SecurityEnabled",Value=SecurityEnabled,Type="bool")}
                 </b:PropertyValues>
                 <b:SyncObjectType>{usertype}</b:SyncObjectType>
                 <b:SyncOperation>{operation_type}</b:SyncOperation>
@@ -335,7 +337,7 @@ class AADInternals():
         response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
         formatresponse = self.xml_to_result(response,command)['b:Results']['b:SyncCredentialsChangeResult']
         if formatresponse['b:Result'] != '0':
-            raise Exception(formatresponse['b:ExtendedErrorInformation'])
+            raise Exception(formatresponse.get('b:ExtendedErrorInformation',formatresponse))
         return formatresponse
 
 
