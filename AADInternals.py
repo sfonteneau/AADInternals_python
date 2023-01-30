@@ -7,7 +7,8 @@ import sys
 import os
 
 if "__file__" in locals():
-    sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)),'python_wcfbin'))
+    sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'python_wcfbin'))
+    sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 from python_wcfbin.wcf.xml2records import XMLParser
 from python_wcfbin.wcf.records import dump_records
@@ -157,26 +158,26 @@ class AADInternals():
                 usertype='User',
                 operation_type="Set",
                 account_enabled=True,
-                surname=None, 
-                onPremisesSamAccountName=None, 
-                onPremisesDistinguishedName=None, 
-                onPremiseSecurityIdentifier=None, 
-                netBiosName=None, 
-                lastPasswordChangeTimestamp=None, 
-                givenName=None, 
-                dnsDomainName=None, 
-                displayName=None, 
-                countryCode=None, 
+                surname=None,
+                onPremisesSamAccountName=None,
+                onPremisesDistinguishedName=None,
+                onPremiseSecurityIdentifier=None,
+                netBiosName=None,
+                lastPasswordChangeTimestamp=None,
+                givenName=None,
+                dnsDomainName=None,
+                displayName=None,
+                countryCode=None,
                 commonName=None,
-                cloudMastered=None, 
-                usageLocation=None, 
-                proxyAddresses=None, 
-                thumbnailPhoto=None, 
-                groupMembers=None, 
-                deviceId=None, 
-                deviceOSType=None, 
-                deviceTrustType=None, 
-                userCertificate=None, 
+                cloudMastered=None,
+                usageLocation=None,
+                proxyAddresses=None,
+                thumbnailPhoto=None,
+                groupMembers=None,
+                deviceId=None,
+                deviceOSType=None,
+                deviceTrustType=None,
+                userCertificate=None,
                 physicalDeliveryOfficeName=None,
                 employeeId=None,
                 country=None,
