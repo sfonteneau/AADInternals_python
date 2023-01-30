@@ -186,7 +186,11 @@ class AADInternals():
                 department=None,
                 telephoneNumber=None,
                 company=None,
-                employeeType=None
+                employeeType=None,
+                facsimileTelephoneNumber=None,
+                mail=None,
+                mobile=None,
+                title=None
                 ):
         tenant_id = self.tenant_id
 
@@ -229,6 +233,10 @@ class AADInternals():
                     {self.Add_PropertyValue("telephoneNumber",Value=telephoneNumber)}
                     {self.Add_PropertyValue("company",Value=company)}
                     {self.Add_PropertyValue("employeeType",Value=employeeType)}
+                    {self.Add_PropertyValue("facsimileTelephoneNumber",Value=facsimileTelephoneNumber)}
+                    {self.Add_PropertyValue("mail",Value=mail)}
+                    {self.Add_PropertyValue("mobile",Value=mobile)}
+                    {self.Add_PropertyValue("title",Value=title)}
                 </b:PropertyValues>
                 <b:SyncObjectType>{usertype}</b:SyncObjectType>
                 <b:SyncOperation>{operation_type}</b:SyncOperation>
