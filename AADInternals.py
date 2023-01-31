@@ -450,7 +450,10 @@ class AADInternals():
                     PropBlock += "<c:base64Binary>" + stringValue + "</c:base64Binary>"
                 PropBlock += "</c:Value>"
             else:
-                PropBlock += "<c:Value i:type='d:string' xmlns:d='http://www.w3.org/2001/XMLSchema'>" + Value + "</c:Value>"
+                if Value:
+                    PropBlock +=   "<c:Value i:type='d:string' xmlns:d='http://www.w3.org/2001/XMLSchema'>" + Value + "</c:Value>"
+                else:
+                    PropBlock += """<c:Value i:nil="true" xmlns:d='http://www.w3.org/2001/XMLSchema'></c:Value>"""
             PropBlock += "</c:KeyValueOfstringanyType>"
             return PropBlock
         else:
