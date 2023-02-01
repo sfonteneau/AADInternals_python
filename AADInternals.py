@@ -278,6 +278,12 @@ class AADInternals():
             result.append(entry.as_dict())
         return result
 
+    def list_groups(self):
+        result = []
+        for entry in list(self.graphrbac_client.groups.list(proxies=self.proxies)) :
+            result.append(entry.as_dict())
+        return result
+
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L927
     def get_syncobjects(self,fullsync=True,version=2):
         if version==2:
