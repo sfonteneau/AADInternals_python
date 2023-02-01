@@ -278,10 +278,37 @@ class AADInternals():
             result.append(entry.as_dict())
         return result
 
-    def list_groups(self):
+    def get_dict_cloudanchor_sourceanchor(self):
+        dict_cloudanchor_sourceanchor = {}
+        for entry in self.get_syncobjects(False):
+            cloudanchor = None
+            sourceanchor = None
+            for v in entry['b:PropertyValues']['c:KeyValueOfstringanyType']:
+                if v['c:Key'] == "CloudAnchor":
+                    cloudanchor = v["c:Value"]['#text']
+                if v['c:Key'] == "SourceAnchor":
+                    sourceanchor = v["c:Value"]['#text']
+
+            if (not cloudanchor) or (not sourceanchor):
+                continue
+            dict_cloudanchor_sourceanchor[cloudanchor] = sourceanchor
+
+        return dict_cloudanchor_sourceanchor
+
+    def list_groups(self,include_immutable_id=True):
         result = []
+        if include_immutable_id:
+            dict_cloudanchor_sourceanchor = self.get_dict_cloudanchor_sourceanchor()
+        else:
+            dict_cloudanchor_sourceanchor = {}
         for entry in list(self.graphrbac_client.groups.list(proxies=self.proxies)) :
-            result.append(entry.as_dict())
+            data = entry.as_dict()
+            if str('Group_' + data['object_id']) in dict_cloudanchor_sourceanchor:
+                data['immutable_id'] = dict_cloudanchor_sourceanchor[str('Group_' + data['object_id'])]
+            else:
+                if include_immutable_id :
+                    data['immutable_id'] = None
+            result.append(data)
         return result
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L927
