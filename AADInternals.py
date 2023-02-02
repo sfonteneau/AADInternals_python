@@ -202,9 +202,9 @@ class AADInternals():
         <b:SyncObjects>
             <b:AzureADSyncObject>
                 <b:PropertyValues xmlns:c="http://schemas.microsoft.com/2003/10/Serialization/Arrays">
-                    {self.Add_PropertyValue("SourceAnchor",Value=sourceanchor)}
-                    {self.Add_PropertyValue("accountEnabled",Value=account_enabled,Type="bool")}
-                    {self.Add_PropertyValue("userPrincipalName",Value=user_principal_name)}
+                    {self.Add_PropertyValue("SourceAnchor",Value=SourceAnchor)}
+                    {self.Add_PropertyValue("accountEnabled",Value=accountEnabled,Type="bool")}
+                    {self.Add_PropertyValue("userPrincipalName",Value=userPrincipalName)}
                     {self.Add_PropertyValue("commonName",Value=commonName)}
                     {self.Add_PropertyValue("countryCode",Value=countryCode,Type="long")}
                     {self.Add_PropertyValue("displayName",Value=displayName)}
