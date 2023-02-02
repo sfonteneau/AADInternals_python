@@ -42,7 +42,28 @@ class AADInternals():
         command = "GetCompanyConfiguration"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        return self.xml_to_result(response,command)
+        data = self.xml_to_result(response,command)
+        dict_data = {"AllowedFeatures" :                        data["AllowedFeatures"],
+                "AnchorAttribute" :                             data["DirSyncConfiguration"]["AnchorAttribute"],
+                "ApplicationVersion" :                          data["DirSyncConfiguration"]["ApplicationVersion"],
+                "ClientVersion" :                               data["DirSyncConfiguration"]["ClientVersion"],
+                "DirSyncClientMachine" :                        data["DirSyncConfiguration"]["CurrentExport"]["DirSyncClientMachineName"],
+                "DirSyncFeatures" :                             int(data["DirSyncFeatures"]),
+                "DisplayName" :                                 data["DisplayName"],
+                "IsDirSyncing" :                                data["IsDirSyncing"],
+                "IsPasswordSyncing" :                           data["IsPasswordSyncing"],
+                "IsTrackingChanges" :                           data["DirSyncConfiguration"]["IsTrackingChanges"],
+                "MaxLinksSupportedAcrossBatchInProvision" :     data["MaxLinksSupportedAcrossBatchInProvision2"],
+                "PreventAccidentalDeletion" :                   data["DirSyncConfiguration"]["PreventAccidentalDeletion"]["DeletionPrevention"],
+                "SynchronizationInterval" :                     data["SynchronizationInterval"],
+                "TenantId" :                                    data["TenantId"],
+                "TotalConnectorSpaceObjects" :                  data["DirSyncConfiguration"]["CurrentExport"]["TotalConnectorSpaceObjects"],
+                "TresholdCount" :                               data["DirSyncConfiguration"]["PreventAccidentalDeletion"]["ThresholdCount"],
+                "TresholdPercentage" :                          data["DirSyncConfiguration"]["PreventAccidentalDeletion"]["ThresholdPercentage"],
+                "UnifiedGroupContainer" :                       data["DirSyncConfiguration"]["Writeback"]["UnifiedGroupContainer"]['@i:nil'],
+                "UserContainer" :                               data["DirSyncConfiguration"]["Writeback"]["UserContainer"]['@i:nil'],
+            }
+        return dict_data
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L515
     def update_syncfeatures(self,feature=None):
@@ -150,6 +171,42 @@ class AADInternals():
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
+
+
+    def set_sync_features(self,enable_features=[], disable_features=[]):
+        feature_values = {
+            "PasswordHashSync": 1,
+            "PasswordWriteBack": 2,
+            "DirectoryExtensions": 4,
+            "DuplicateUPNResiliency": 8,
+            "EnableSoftMatchOnUpn": 16,
+            "DuplicateProxyAddressResiliency": 32,
+            "EnforceCloudPasswordPolicyForPasswordSyncedUsers": 512,
+            "UnifiedGroupWriteback": 1024,
+            "UserWriteback": 2048,
+            "DeviceWriteback": 4096,
+            "SynchronizeUpnForManagedUsers": 8192,
+            "EnableUserForcePasswordChangeOnLogon": 16384,
+            "PassThroughAuthentication": 131072,
+            "BlockSoftMatch": 524288,
+            "BlockCloudObjectTakeoverThroughHardMatch": 1048576
+        }
+
+        access_token = self.token
+
+
+
+        current_features = self.get_syncconfiguration()['DirSyncFeatures']
+
+        for feature in enable_features:
+            current_features = current_features | feature_values[feature]
+
+        for feature in disable_features:
+            current_features = current_features & (0x7FFFFFFF ^ feature_values[feature])
+
+
+        return self.update_syncfeatures(current_features)
+
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L570
     def set_azureadobject(self,
