@@ -153,11 +153,11 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L570
     def set_azureadobject(self,
-                sourceanchor,
-                user_principal_name=None,
+                SourceAnchor=None,
+                userPrincipalName=None,
                 usertype='User',
                 operation_type="Set",
-                account_enabled=True,
+                accountEnabled=True,
                 surname=None,
                 onPremisesSamAccountName=None,
                 onPremisesDistinguishedName=None,
