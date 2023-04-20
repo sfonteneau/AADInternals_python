@@ -76,6 +76,25 @@ class AADInternals():
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L4582
+    def get_companyinformation(self):
+        body = '''<b:ReturnValue i:nil="true"/>''' 
+        command = "GetCompanyInformation"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+       
+
+
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3404
+    def set_adsyncenabled(self,enabledirsync=True):
+        body = '''<b:EnableDirSync>%s</b:EnableDirSync>''' % str(bool(enabledirsync)).lower()
+        message_id = str(uuid.uuid4())
+        command = "SetCompanyDirSyncEnabled"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L784
     def remove_azureadoject(self,sourceanchor=None,objecttype=None):
@@ -456,6 +475,45 @@ class AADInternals():
         aadhash = "v1;PPH1_MD4,%s,%s,%s;" % (salthex,iterations,key)
         return aadhash
 
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI_utils.ps1#L64
+    def create_envelope(self,token,command,requestelements):
+        message_id = str(uuid.uuid4())
+        envelope = rf'''
+        <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing">
+	        <s:Header>
+		        <a:Action s:mustUnderstand="1">http://provisioning.microsoftonline.com/IProvisioningWebService/{command}</a:Action>
+		        <a:MessageID>urn:uuid:{message_id}</a:MessageID>
+		        <a:ReplyTo>
+			        <a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>
+		        </a:ReplyTo>
+		        <UserIdentityHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.token}</BearerToken>
+			        <LiveToken i:nil="true" xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService"/>
+		        </UserIdentityHeader>
+		        <ClientVersionHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+			        <ClientId xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">50afce61-c917-435b-8c6d-60aa5a8b8aa7</ClientId>
+			        <Version xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">1.2.183.17</Version>
+		        </ClientVersionHeader>
+		        <ContractVersionHeader xmlns="http://becwebservice.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+			        <BecVersion xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Version47</BecVersion>
+		        </ContractVersionHeader>
+		        <a:To s:mustUnderstand="1">https://provisioningapi.microsoftonline.com/provisioningwebservice.svc</a:To>
+	        </s:Header>
+	        <s:Body>
+                <{command} xmlns="http://provisioning.microsoftonline.com/">
+			        <request xmlns:b="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+                        <b:BecVersion>Version16</b:BecVersion>
+                        <b:TenantId>{self.tenant_id}</b:TenantId>
+                        <b:VerifiedDomain i:nil="true"/>
+		                {requestelements}
+                    </request>
+                </{command}>
+	        </s:Body>
+        </s:Envelope>
+        '''
+        return envelope
+
+
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L77
     def create_syncenvelope(self,token,command,body,message_id,server="adminwebservice.microsoftonline.com",binary=True,isinstalledondc=False,richcoexistenceenabled=False,version=1):
 
@@ -496,6 +554,14 @@ class AADInternals():
             return self.xmltobinary(envelope)
         else:
             return envelope
+
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI_utils.ps1#L127
+    def call_provisioningapi(self,envelope):
+        headers = {
+            'Content-type': 'application/soap+xml'
+        }
+        r = requests.post("https://provisioningapi.microsoftonline.com/provisioningwebservice.svc", headers=headers,data=envelope,proxies=self.proxies)
+        return r.content
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L166
     def call_adsyncapi(self,envelope,command,tenant_id,message_id,server="adminwebservice.microsoftonline.com"):
