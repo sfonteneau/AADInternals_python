@@ -86,6 +86,28 @@ class AADInternals():
        
 
 
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L715
+    def get_groups(self,pagesize=500,sortdirection="Ascending",sortfield="None"):
+        body = rf'''<b:GroupSearchDefinition xmlns:c="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration">
+                <c:PageSize>{pagesize}</c:PageSize>
+                <c:SearchString i:nil="true"/>
+                <c:SortDirection>{sortdirection}</c:SortDirection>
+                <c:SortField>{sortfield}</c:SortField>
+                <c:AccountSku i:nil="true"/>
+                <c:GroupType i:nil="true"/>
+                <c:HasErrorsOnly i:nil="true"/>
+                <c:HasLicenseErrorsOnly i:nil="true"/>
+                <c:IncludedProperties i:nil="true"/>
+                <c:IsAgentRole i:nil="true"/>
+                <c:UserObjectId i:nil="true"/>
+                <c:UserPrincipalName i:nil="true"/>
+            </b:GroupSearchDefinition>''' 
+        command = "ListGroups"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+
+
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3404
     def set_adsyncenabled(self,enabledirsync=True):
         body = '''<b:EnableDirSync>%s</b:EnableDirSync>''' % str(bool(enabledirsync)).lower()
@@ -95,6 +117,17 @@ class AADInternals():
         response = self.call_provisioningapi(envelope)
         return response
 
+
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L5561
+    def set_userlicenses(self,objectid):
+        body = rf'''<b:AddLicenses i:nil="true"/>
+            <b:ObjectId>{objectid}</b:ObjectId>
+            <b:RemoveLicenses i:nil="true"/>
+            <b:LicenseOptions i:nil="true"/>'''
+        command = "SetUserLicenses"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L784
     def remove_azureadoject(self,sourceanchor=None,objecttype=None):
