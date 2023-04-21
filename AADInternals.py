@@ -44,24 +44,24 @@ class AADInternals():
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         data = self.xml_to_result(response,command)
         dict_data = {"AllowedFeatures" :                        data["AllowedFeatures"],
-                "AnchorAttribute" :                             data["DirSyncConfiguration"]["AnchorAttribute"],
-                "ApplicationVersion" :                          data["DirSyncConfiguration"]["ApplicationVersion"],
-                "ClientVersion" :                               data["DirSyncConfiguration"]["ClientVersion"],
-                "DirSyncClientMachine" :                        data["DirSyncConfiguration"]["CurrentExport"]["DirSyncClientMachineName"],
+                "AnchorAttribute" :                             data["DirSyncConfiguration"].get("AnchorAttribute",""),
+                "ApplicationVersion" :                          data["DirSyncConfiguration"].get("ApplicationVersion",""),
+                "ClientVersion" :                               data["DirSyncConfiguration"].get("ClientVersion",""),
+                "DirSyncClientMachine" :                        data["DirSyncConfiguration"].get("CurrentExport",{}).get("DirSyncClientMachineName",""),
                 "DirSyncFeatures" :                             int(data["DirSyncFeatures"]),
                 "DisplayName" :                                 data["DisplayName"],
                 "IsDirSyncing" :                                data["IsDirSyncing"],
                 "IsPasswordSyncing" :                           data["IsPasswordSyncing"],
-                "IsTrackingChanges" :                           data["DirSyncConfiguration"]["IsTrackingChanges"],
+                "IsTrackingChanges" :                           data["DirSyncConfiguration"].get("IsTrackingChanges",""),
                 "MaxLinksSupportedAcrossBatchInProvision" :     data["MaxLinksSupportedAcrossBatchInProvision2"],
-                "PreventAccidentalDeletion" :                   data["DirSyncConfiguration"]["PreventAccidentalDeletion"]["DeletionPrevention"],
+                "PreventAccidentalDeletion" :                   data["DirSyncConfiguration"].get("PreventAccidentalDeletion",{}).get("DeletionPrevention",''),
                 "SynchronizationInterval" :                     data["SynchronizationInterval"],
                 "TenantId" :                                    data["TenantId"],
-                "TotalConnectorSpaceObjects" :                  data["DirSyncConfiguration"]["CurrentExport"]["TotalConnectorSpaceObjects"],
-                "TresholdCount" :                               data["DirSyncConfiguration"]["PreventAccidentalDeletion"]["ThresholdCount"],
-                "TresholdPercentage" :                          data["DirSyncConfiguration"]["PreventAccidentalDeletion"]["ThresholdPercentage"],
-                "UnifiedGroupContainer" :                       data["DirSyncConfiguration"]["Writeback"]["UnifiedGroupContainer"]['@i:nil'],
-                "UserContainer" :                               data["DirSyncConfiguration"]["Writeback"]["UserContainer"]['@i:nil'],
+                "TotalConnectorSpaceObjects" :                  data["DirSyncConfiguration"].get("CurrentExport",{}).get("TotalConnectorSpaceObjects",''),
+                "TresholdCount" :                               data["DirSyncConfiguration"].get("PreventAccidentalDeletion",{}).get("ThresholdCount",''),
+                "TresholdPercentage" :                          data["DirSyncConfiguration"].get("PreventAccidentalDeletion",{}).get("ThresholdPercentage",''),
+                "UnifiedGroupContainer" :                       data["DirSyncConfiguration"].get("Writeback",{}).get("UnifiedGroupContainer",{}).get('@i:nil',''),
+                "UserContainer" :                               data["DirSyncConfiguration"].get("Writeback",{}).get("UserContainer",{}).get('@i:nil',''),
             }
         return dict_data
 
@@ -392,6 +392,8 @@ class AADInternals():
         for entry in self.get_syncobjects(False):
             cloudanchor = None
             sourceanchor = None
+            if type(entry) == str:
+                continue
             for v in entry['b:PropertyValues']['c:KeyValueOfstringanyType']:
                 if v['c:Key'] == "CloudAnchor":
                     cloudanchor = v["c:Value"]['#text']
