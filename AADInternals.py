@@ -85,6 +85,55 @@ class AADInternals():
         return response
        
 
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L2870
+    def get_users(self,pagesize=500,sortdirection="Ascending",sortfield="None",searchstring=""):
+        body = rf'''<b:UserSearchDefinition xmlns:c="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration">
+			    <c:PageSize>{pagesize}</c:PageSize>
+                <c:SearchString>{searchstring}</c:SearchString>
+			    <c:SortDirection>{sortdirection}</c:SortDirection>
+			    <c:SortField>{sortfield}</c:SortField>
+			    <c:AccountSku i:nil="true"/>
+			    <c:AdministrativeUnitObjectId i:nil="true"/>
+			    <c:BlackberryUsersOnly i:nil="true"/>
+			    <c:City i:nil="true"/>
+			    <c:Country i:nil="true"/>
+			    <c:Department i:nil="true"/>
+			    <c:DomainName i:nil="true"/>
+			    <c:EnabledFilter i:nil="true"/>
+			    <c:HasErrorsOnly i:nil="true"/>
+			    <c:IncludedProperties i:nil="true"/>
+			    <c:IndirectLicenseFilter i:nil="true"/>
+			    <c:LicenseReconciliationNeededOnly i:nil="true"/>
+			    <c:ReturnDeletedUsers i:nil="true"/>
+			    <c:State i:nil="true"/>
+			    <c:Synchronized i:nil="true"/>
+			    <c:Title i:nil="true"/>
+			    <c:UnlicensedUsersOnly i:nil="true"/>
+			    <c:UsageLocation i:nil="true"/>
+		    </b:UserSearchDefinition>''' 
+        command = "ListUsers"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3988
+    def get_userbyobjectid(self,objectid,returndeletedusers=False):
+        body = rf'''<b:ObjectId>{objectid}</b:ObjectId>
+		    <b:ReturnDeletedUsers>{str(returndeletedusers).lower()}</b:ReturnDeletedUsers>'''
+        command = "GetUser"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L6119
+    def get_group(self,objectid):
+        body = rf'''<b:ObjectId>{objectid}</b:ObjectId>'''
+        command = "GetGroup"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+
+
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L715
     def get_groups(self,pagesize=500,sortdirection="Ascending",sortfield="None"):
@@ -106,6 +155,23 @@ class AADInternals():
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
         return response
+
+    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L4332
+    def get_groupsmembers(self,objectid,pagesize=500,sortdirection="Ascending",sortfield="None"):
+        body = rf'''<b:GroupMemberSearchDefinition xmlns:c="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration">
+			    <c:PageSize>{pagesize}</c:PageSize>
+			    <c:SearchString i:nil="true"/>
+			    <c:SortDirection>{sortdirection}</c:SortDirection>
+			    <c:SortField>{sortfield}</c:SortField>
+			    <c:GroupObjectId>{objectid}</c:GroupObjectId>
+			    <c:IncludedProperties i:nil="true"/>
+			    <c:MemberObjectTypes i:nil="true"/>
+		    </b:GroupMemberSearchDefinition>'''
+        command = "ListGroupMembers"
+        envelope  = self.create_envelope(self.token,command,body)
+        response = self.call_provisioningapi(envelope)
+        return response
+
 
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3404
