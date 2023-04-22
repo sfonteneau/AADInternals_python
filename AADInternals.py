@@ -82,7 +82,7 @@ class AADInternals():
         command = "GetCompanyInformation"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
        
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L2870
@@ -114,7 +114,7 @@ class AADInternals():
         command = "ListUsers"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3988
     def get_userbyobjectid(self,objectid,returndeletedusers=False):
@@ -123,7 +123,7 @@ class AADInternals():
         command = "GetUser"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L6119
     def get_group(self,objectid):
@@ -131,7 +131,7 @@ class AADInternals():
         command = "GetGroup"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
 
 
 
@@ -154,7 +154,7 @@ class AADInternals():
         command = "ListGroups"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L4332
     def get_groupsmembers(self,objectid,pagesize=500,sortdirection="Ascending",sortfield="None"):
@@ -170,7 +170,7 @@ class AADInternals():
         command = "ListGroupMembers"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
 
 
 
@@ -181,7 +181,7 @@ class AADInternals():
         command = "SetCompanyDirSyncEnabled"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return response
+        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']
 
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L5561
