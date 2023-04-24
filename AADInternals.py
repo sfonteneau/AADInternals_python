@@ -503,7 +503,7 @@ class AADInternals():
         command = "ReadBackAzureADSyncObjects%s" % txtvers
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        return  self.xml_to_result(response,command)['b:ResultObjects']['b:AzureADSyncObject']
+        return  self.xml_to_result(response,command).get('b:ResultObjects',{}).get('b:AzureADSyncObject',[])
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
     def set_userpassword(self,cloudanchor=None,sourceanchor=None,userprincipalname=None,password=None,hashnt=None,changedate=None,iterations=1000,):
