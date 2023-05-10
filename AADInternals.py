@@ -355,6 +355,7 @@ class AADInternals():
                 userCertificate=None,
                 physicalDeliveryOfficeName=None,
                 employeeId=None,
+                deviceOSVersion=None,
                 country=None,
                 city=None,
                 streetAddress=None,
@@ -381,6 +382,7 @@ class AADInternals():
                     {self.Add_PropertyValue("accountEnabled",Value=accountEnabled,Type="bool")}
                     {self.Add_PropertyValue("userPrincipalName",Value=userPrincipalName)}
                     {self.Add_PropertyValue("commonName",Value=commonName)}
+                    {self.Add_PropertyValue("deviceOSVersion",Value=deviceOSVersion)}
                     {self.Add_PropertyValue("countryCode",Value=countryCode,Type="long")}
                     {self.Add_PropertyValue("displayName",Value=displayName)}
                     {self.Add_PropertyValue("dnsDomainName",Value=dnsDomainName)}
