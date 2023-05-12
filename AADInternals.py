@@ -435,7 +435,7 @@ class AADInternals():
         return newresponse
 
     def xml_to_result(self,response,command):
-        dataxml = xmltodict.parse(self.binarytoxml(response).replace('X509:<SHA1-TP-PUBKEY>','X509:&lt;SHA1-TP-PUBKEY&gt;').replace('X509:<SHA2-TP-PUBKEY>','X509:&lt;SHA2-TP-PUBKEY&gt;'))
+        dataxml = xmltodict.parse(self.binarytoxml(response))
         try:
             return dataxml["s:Envelope"]["s:Body"]["%sResponse" % command]['%sResult' % command]
         except KeyError:
