@@ -455,6 +455,16 @@ class AADInternals():
             result.append(entry.as_dict())
         return result
 
+    def list_device(self):
+        list_sourceanchor_device = {}
+        for o in self.get_syncobjects():
+            if o['b:SyncObjectType'] == 'Device':
+                for v in o['b:PropertyValues']['c:KeyValueOfstringanyType']:
+                    if v['c:Key'] == 'SourceAnchor':
+                        list_sourceanchor_device[v['c:Value']['#text']] = o
+        return list_sourceanchor_device
+
+
     def get_dict_cloudanchor_sourceanchor(self):
         dict_cloudanchor_sourceanchor = {}
         for entry in self.get_syncobjects(False):
