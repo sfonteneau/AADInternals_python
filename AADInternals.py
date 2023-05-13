@@ -458,10 +458,15 @@ class AADInternals():
     def list_device(self):
         list_sourceanchor_device = {}
         for o in self.get_syncobjects():
+            SourceAnchor = None
             if o['b:SyncObjectType'] == 'Device':
                 for v in o['b:PropertyValues']['c:KeyValueOfstringanyType']:
                     if v['c:Key'] == 'SourceAnchor':
                         list_sourceanchor_device[v['c:Value']['#text']] = o
+                        SourceAnchor = v['c:Value']['#text']
+            if o["b:SyncOperation"] == 'Delete':
+                if SourceAnchor in list_sourceanchor_device:
+                    del list_sourceanchor_device[SourceAnchor]
         return list_sourceanchor_device
 
 
