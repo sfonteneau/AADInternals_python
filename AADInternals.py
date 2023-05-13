@@ -3,6 +3,7 @@ from azure.graphrbac import GraphRbacManagementClient
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
 
+import json
 import sys
 import os
 
@@ -32,6 +33,35 @@ class AADInternals():
         self.tenant_id = self.credentials.token['tenant_id']
         self.token = self.credentials.token['access_token']
         self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
+
+    #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
+    def call_graphapi(self,Command,ApiVersion="1.61-internal",Method="Get",Body=None,Headers={},QueryString=None):
+        Headers['Authorization'] = "Bearer %s" % self.token
+        Headers['Content-type'] = 'application/json; charset=utf-8'
+
+        r = getattr(requests, Method.lower())
+
+        data = r(rf"https://graph.windows.net/{self.tenant_id}/{Command}?api-version={ApiVersion}{QueryString if QueryString else ''}", headers=Headers,data=Body,proxies=self.proxies)
+        return json.loads(data.content)
+
+    #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI.ps1#L73
+    def get_devices(self,include_immutable_id=True):
+        r = self.call_graphapi('devices')['value']
+
+        result = []
+        if include_immutable_id:
+            dict_cloudanchor_sourceanchor = self.get_dict_cloudanchor_sourceanchor()
+        else:
+            dict_cloudanchor_sourceanchor = {}
+
+        for data in r :
+            if str('Device_' + data['objectId']) in dict_cloudanchor_sourceanchor:
+                data['immutable_id'] = dict_cloudanchor_sourceanchor[str('Device_' + data['objectId'])]
+            else:
+                if include_immutable_id :
+                    data['immutable_id'] = None
+            result.append(data)
+        return result
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L8
     def get_syncconfiguration(self):
@@ -454,21 +484,6 @@ class AADInternals():
         for entry in list(self.graphrbac_client.users.list(proxies=self.proxies)) :
             result.append(entry.as_dict())
         return result
-
-    def list_device(self):
-        list_sourceanchor_device = {}
-        for o in self.get_syncobjects():
-            SourceAnchor = None
-            if o['b:SyncObjectType'] == 'Device':
-                for v in o['b:PropertyValues']['c:KeyValueOfstringanyType']:
-                    if v['c:Key'] == 'SourceAnchor':
-                        list_sourceanchor_device[v['c:Value']['#text']] = o
-                        SourceAnchor = v['c:Value']['#text']
-            if o["b:SyncOperation"] == 'Delete':
-                if SourceAnchor in list_sourceanchor_device:
-                    del list_sourceanchor_device[SourceAnchor]
-        return list_sourceanchor_device
-
 
     def get_dict_cloudanchor_sourceanchor(self):
         dict_cloudanchor_sourceanchor = {}
