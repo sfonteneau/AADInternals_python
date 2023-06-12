@@ -460,7 +460,7 @@ class AADInternals():
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         rawresponse = self.call_adsyncapi(envelope,command,tenant_id,message_id)
         newresponse = self.xml_to_result(rawresponse,command)['b:SyncObjectResults']['b:AzureADSyncObjectResult']
-        if newresponse['b:ResultCode'] == 'Failure':
+        if newresponse['b:ResultCode'] == 'Failure' or newresponse['b:ResultErrorDescription'] != {'@i:nil': 'true'}:
             raise Exception (newresponse['b:ResultErrorDescription'])
         return newresponse
 
