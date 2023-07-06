@@ -40,20 +40,25 @@ class AADInternals():
                 with open(cache_file,'r') as f:
                     old_token=json.loads(f.read())
 
-                    context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'],proxies=proxies)
-                    try:
-                        token_response = context.acquire_token_with_refresh_token(
-                            old_token['refresh_token'],
-                            old_token['_client_id'],
-                            old_token['resource']
-                            )
-                        token_response['tenant_id'] = old_token['tenant_id']
-                        token_response['resource'] = old_token['resource']
-                        token_response['_client_id'] = old_token['_client_id']
-                        token_response['refresh_token'] = old_token['refresh_token']
-                        token_response['access_token'] = token_response['accessToken']
-                    except:
-                        pass
+                if tenant_id :
+                    if tenant_id != old_token['tenant_id']:
+                        print('ERROR New tenant_id detect, please delete %s' % cache_file)             
+                        sys.exit(1)
+
+                context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'],proxies=proxies)
+                try:
+                    token_response = context.acquire_token_with_refresh_token(
+                        old_token['refresh_token'],
+                        old_token['_client_id'],
+                        old_token['resource']
+                        )
+                    token_response['tenant_id'] = old_token['tenant_id']
+                    token_response['resource'] = old_token['resource']
+                    token_response['_client_id'] = old_token['_client_id']
+                    token_response['refresh_token'] = old_token['refresh_token']
+                    token_response['access_token'] = token_response['accessToken']
+                except:
+                    pass
 
         if not token_response :
             if password :
