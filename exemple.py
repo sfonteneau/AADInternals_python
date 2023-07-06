@@ -1,5 +1,10 @@
 from AADInternals import AADInternals
-az = AADInternals(mail="admin@mydomain.com",password="password")
+
+#ONLY If multi-factor authentication NOT enable:
+#az = AADInternals(mail="admin@mydomain.com",password="password")
+
+#If multi-factor authentication enable:
+az = AADInternals(tenant_id='00000000-0000-0000-0000-000000000000')
 
 #enable sync password feature
 print(az.set_sync_features(enable_features=['PasswordHashSync']))

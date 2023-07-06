@@ -2,6 +2,9 @@ from azure.common.credentials import UserPassCredentials
 from azure.graphrbac import GraphRbacManagementClient
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
+from adal import AuthenticationContext
+from msrestazure.azure_active_directory import AADTokenCredentials
+from urllib import parse
 
 import json
 import sys
@@ -27,12 +30,66 @@ aadsync_client_build=  "1.5.29.0"
 
 class AADInternals():
 
-    def __init__(self, mail=None, password=None,proxies={}):
+    def __init__(self, mail=None, password=None,proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json')):
         self.proxies=proxies
-        self.credentials = UserPassCredentials(mail, password, resource="https://graph.windows.net",proxies=proxies)
-        self.tenant_id = self.credentials.token['tenant_id']
-        self.token = self.credentials.token['access_token']
-        self.graphrbac_client = GraphRbacManagementClient(self.credentials,self.credentials.token['tenant_id'])
+        token_response = None
+        
+
+        if use_cache:
+            if os.path.isfile(cache_file) :
+                with open(cache_file,'r') as f:
+                    old_token=json.loads(f.read())
+
+                    context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'])
+                    try:
+                        token_response = context.acquire_token_with_refresh_token(
+                            old_token['refresh_token'],
+                            old_token['_client_id'],
+                            old_token['resource']
+                            )
+                        token_response['tenant_id'] = old_token['tenant_id']
+                        token_response['resource'] = old_token['resource']
+                        token_response['_client_id'] = old_token['_client_id']
+                        token_response['refresh_token'] = old_token['refresh_token']
+                        token_response['access_token'] = token_response['accessToken']
+                    except:
+                        pass
+
+        if not token_response :
+            if password :
+                try:
+                    self.credentials = UserPassCredentials(mail, password, resource="https://graph.windows.net",proxies=proxies)
+                    token_response = self.credentials.token
+                    tenant_id = token_response['tenant_id']
+                except:
+                    pass
+        
+        if not token_response :
+            if not tenant_id:
+                print('Error, Please provide tenant_id')
+                sys.exit(1)
+            TEMPLATE_AUTHZ_URL = ('https://login.windows.net/{}/oauth2/authorize?' + 'response_type=code&client_id={}&redirect_uri={}&' +'state={}&resource={}')
+
+            authorization_url = TEMPLATE_AUTHZ_URL.format(tenant_id,"04b07795-8ddb-461a-bbee-02f9e1bf7b46","http://localhost",12345,"2ff814a6-3304-4ab8-85cb-cd0e6f879c1d")
+            print('visit this website and give the link back which goes to localhost:')
+            print(authorization_url)  
+            respurl = input('\n\nURL returned by Microsoft : \n')
+            code=parse.parse_qs(parse.urlparse(respurl).query)['code'][0]
+            context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id)
+            token_response = context.acquire_token_with_authorization_code(code,"http://localhost",'https://graph.windows.net',"04b07795-8ddb-461a-bbee-02f9e1bf7b46")
+            token_response['tenant_id'] = tenant_id
+            token_response['access_token'] = token_response['accessToken']
+            token_response['_client_id'] = token_response['_clientId']
+            token_response['refresh_token'] = token_response['refreshToken']
+
+        
+        if save_to_cache:
+            with open(cache_file,'w') as f:
+                f.write(json.dumps(token_response))
+
+        self.tenant_id = token_response['tenant_id']
+        self.token = token_response['access_token']
+        self.graphrbac_client = GraphRbacManagementClient(AADTokenCredentials(token_response),self.tenant_id)
 
     #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
     def call_graphapi(self,Command,ApiVersion="1.61-internal",Method="Get",Body=None,Headers={},QueryString=None):
