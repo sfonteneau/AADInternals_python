@@ -40,7 +40,7 @@ class AADInternals():
                 with open(cache_file,'r') as f:
                     old_token=json.loads(f.read())
 
-                    context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'])
+                    context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'],proxies=proxies)
                     try:
                         token_response = context.acquire_token_with_refresh_token(
                             old_token['refresh_token'],
@@ -75,7 +75,7 @@ class AADInternals():
             print(authorization_url)  
             respurl = input('\n\nURL returned by Microsoft : \n')
             code=parse.parse_qs(parse.urlparse(respurl).query)['code'][0]
-            context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id)
+            context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id,proxies=proxies)
             token_response = context.acquire_token_with_authorization_code(code,"http://localhost",'https://graph.windows.net',"04b07795-8ddb-461a-bbee-02f9e1bf7b46")
             token_response['tenant_id'] = tenant_id
             token_response['access_token'] = token_response['accessToken']
