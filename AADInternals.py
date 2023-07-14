@@ -33,6 +33,7 @@ class AADInternals():
     def __init__(self, mail=None, password=None,proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json')):
         self.proxies=proxies
         token_response = None
+        self.requests_session_call_adsyncapi = requests.Session()
         
 
         if use_cache:
@@ -776,8 +777,7 @@ class AADInternals():
             "x-ms-aadmsods-appid":"1651564e-7ce4-4d99-88be-0a65050d8dc3",
             "x-ms-aadmsods-apiaction": command
         }
-
-        r = requests.post("https://%s/provisioningservice.svc" % server, headers=headers,data=envelope,proxies=self.proxies)
+        r = self.requests_session_call_adsyncapi.post("https://%s/provisioningservice.svc" % server, headers=headers,data=envelope,proxies=self.proxies)
 
         return r.content
 
