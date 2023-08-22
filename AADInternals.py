@@ -557,9 +557,9 @@ class AADInternals():
                 continue
             for v in entry['b:PropertyValues']['c:KeyValueOfstringanyType']:
                 if v['c:Key'] == "CloudAnchor":
-                    cloudanchor = v["c:Value"]['#text']
+                    cloudanchor = v["c:Value"].get('#text')
                 if v['c:Key'] == "SourceAnchor":
-                    sourceanchor = v["c:Value"]['#text']
+                    sourceanchor = v["c:Value"].get('#text')
 
             if (not cloudanchor) or (not sourceanchor):
                 continue
