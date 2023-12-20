@@ -135,7 +135,7 @@ class AADInternals():
         command = "GetCompanyConfiguration"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        data = self.xml_to_result(response,command)
+        data = self.xml_to_result(self.binarytoxml(response),command)
         dict_data = {"AllowedFeatures" :                        data["AllowedFeatures"],
                 "AnchorAttribute" :                             data["DirSyncConfiguration"].get("AnchorAttribute",""),
                 "ApplicationVersion" :                          data["DirSyncConfiguration"].get("ApplicationVersion",""),
@@ -175,7 +175,7 @@ class AADInternals():
         command = "GetCompanyInformation"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
+        return  self.xml_to_result(response,command)['b:ReturnValue']
        
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L2870
@@ -207,7 +207,7 @@ class AADInternals():
         command = "ListUsers"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
+        return  self.xml_to_result(response,command)['b:ReturnValue']
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3988
     def get_userbyobjectid(self,objectid,returndeletedusers=False):
@@ -216,7 +216,7 @@ class AADInternals():
         command = "GetUser"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
+        return  self.xml_to_result(response,command)['b:ReturnValue']
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L6119
     def get_group(self,objectid):
@@ -224,7 +224,7 @@ class AADInternals():
         command = "GetGroup"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
+        return  self.xml_to_result(response,command)['b:ReturnValue']
 
 
 
@@ -247,7 +247,7 @@ class AADInternals():
         command = "ListGroups"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
+        return  self.xml_to_result(response,command)['b:ReturnValue']
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L4332
     def get_groupsmembers(self,objectid,pagesize=500,sortdirection="Ascending",sortfield="None"):
@@ -263,7 +263,7 @@ class AADInternals():
         command = "ListGroupMembers"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']['b:ReturnValue']
+        return  self.xml_to_result(response,command)['b:ReturnValue']
 
 
 
@@ -274,7 +274,7 @@ class AADInternals():
         command = "SetCompanyDirSyncEnabled"
         envelope  = self.create_envelope(self.token,command,body)
         response = self.call_provisioningapi(envelope)
-        return xmltodict.parse(response)['s:Envelope']['s:Body'][command + 'Response'][command + 'Result']
+        return self.xml_to_result(response,command)
 
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L5561
@@ -522,13 +522,13 @@ class AADInternals():
         command = "ProvisionAzureADSyncObjects"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         rawresponse = self.call_adsyncapi(envelope,command,tenant_id,message_id)
-        newresponse = self.xml_to_result(rawresponse,command)['b:SyncObjectResults']['b:AzureADSyncObjectResult']
+        newresponse = self.xml_to_result(self.binarytoxml(rawresponse),command)['b:SyncObjectResults']['b:AzureADSyncObjectResult']
         if newresponse['b:ResultCode'] == 'Failure' or newresponse['b:ResultErrorDescription'] != {'@i:nil': 'true'}:
             raise Exception (newresponse['b:ResultErrorDescription'])
         return newresponse
 
     def xml_to_result(self,response,command):
-        dataxml = xmltodict.parse(self.binarytoxml(response))
+        dataxml = xmltodict.parse(response)
         try:
             return dataxml["s:Envelope"]["s:Body"]["%sResponse" % command]['%sResult' % command]
         except KeyError:
@@ -598,7 +598,7 @@ class AADInternals():
         command = "ReadBackAzureADSyncObjects%s" % txtvers
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        dataxml = self.xml_to_result(response,command)
+        dataxml = self.xml_to_result(self.binarytoxml(response),command)
         if dataxml.get('b:ResultObjects',{}) == None:
             dataxml['b:ResultObjects'] = {}
         return  dataxml.get('b:ResultObjects',{}).get('b:AzureADSyncObject',[])
@@ -644,7 +644,7 @@ class AADInternals():
         command = "ProvisionCredentials"
         envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
-        formatresponse = self.xml_to_result(response,command)['b:Results']['b:SyncCredentialsChangeResult']
+        formatresponse = self.xml_to_result(self.binarytoxml(response),command)['b:Results']['b:SyncCredentialsChangeResult']
         if formatresponse['b:Result'] != '0':
             raise Exception(formatresponse.get('b:ExtendedErrorInformation',formatresponse))
         return formatresponse
