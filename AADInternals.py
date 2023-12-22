@@ -462,8 +462,16 @@ class AADInternals():
                 mobile=None,
                 title=None,
                 SecurityEnabled=None,
+                **kwargs
                 ):
         tenant_id = self.tenant_id
+
+        datakwargs = []
+        for k in kwargs:
+            datakwargs.append(self.Add_PropertyValue(k,Value=kwargs[k]))
+
+        datakwargs = '\n'.join(datakwargs)
+
 
         command = "ProvisionAzureADSyncObjects"
         body =  rf"""<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
@@ -510,6 +518,7 @@ class AADInternals():
                     {self.Add_PropertyValue("mobile",Value=mobile)}
                     {self.Add_PropertyValue("title",Value=title)}
                     {self.Add_PropertyValue("SecurityEnabled",Value=SecurityEnabled,Type="bool")}
+                    {datakwargs}
                 </b:PropertyValues>
                 <b:SyncObjectType>{usertype}</b:SyncObjectType>
                 <b:SyncOperation>{operation_type}</b:SyncOperation>
