@@ -5,7 +5,7 @@ from passlib.hash import nthash
 from adal import AuthenticationContext
 from msrestazure.azure_active_directory import AADTokenCredentials
 from urllib import parse
-
+import string
 import json
 import sys
 import os
@@ -75,12 +75,15 @@ class AADInternals():
                 print('Error, Please provide tenant_id')
                 sys.exit(1)
             TEMPLATE_AUTHZ_URL = ('https://login.windows.net/{}/oauth2/authorize?' + 'response_type=code&client_id={}&redirect_uri={}&' +'state={}&resource={}')
-
-            authorization_url = TEMPLATE_AUTHZ_URL.format(tenant_id,"04b07795-8ddb-461a-bbee-02f9e1bf7b46","http://localhost",12345,"2ff814a6-3304-4ab8-85cb-cd0e6f879c1d")
+            auth_state = (''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits)for _ in range(48)))
+            authorization_url = TEMPLATE_AUTHZ_URL.format(tenant_id,"04b07795-8ddb-461a-bbee-02f9e1bf7b46","http://localhost",auth_state,"2ff814a6-3304-4ab8-85cb-cd0e6f879c1d")
             print('visit this website and give the link back which goes to localhost:')
             print(authorization_url)  
             respurl = input('\n\nURL returned by Microsoft : \n')
             code=parse.parse_qs(parse.urlparse(respurl).query)['code'][0]
+            state = parse.parse_qs(parse.urlparse(respurl).query)['state'][0]
+            if state != auth_state:
+                raise ValueError('state does not match')
             context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id,proxies=proxies)
             token_response = context.acquire_token_with_authorization_code(code,"http://localhost",'https://graph.windows.net',"04b07795-8ddb-461a-bbee-02f9e1bf7b46")
             token_response['tenant_id'] = tenant_id
