@@ -10,9 +10,6 @@ Please note that this project uses Microsoft APIs not officially documented. Mic
 # Install Notes
 
 `pip3 install -r requirements.txt  
-
 git clone https://github.com/sfonteneau/AADInternals_python  
-
 cd AADInternals_python  
-
 git submodule update --progress --init -- "python_wcfbin"  `
