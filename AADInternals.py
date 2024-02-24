@@ -31,6 +31,26 @@ aadsync_client_build=  "2.2.8.0"
 class AADInternals():
 
     def __init__(self, mail=None, password=None,proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json')):
+        """
+        Establish a connection with Microsoft and attempts to retrieve a token from Microsoft servers.
+        Is initialization interactive if cache is not available : (M.F.A.)
+
+        Args:
+            mail (str): Deprecated , Login azure ad (Requires a right global admin), Can be left as None to use a browser connection (MFA, recommended)
+            password (str): password associated with that of the e-mail if the e-mail is entered
+            proxies (dict): Specify proxies if needed.
+            use_cache (bool): Define if the cache_file is used (last token generated if exists)
+            save_to_cache (bool): Define if the token give is backup in cache_file
+            tenant_id (str): tenant id azure
+            cache_file (str): Path to the cache_file (last token generated)
+
+        Returns:
+            None
+
+        >>> az = AADInternals(tenant_id='00000000-0000-0000-0000-000000000000')
+
+        """
+
         self.proxies=proxies
         token_response = None
         self.requests_session_call_adsyncapi = requests.Session()
@@ -112,6 +132,17 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI.ps1#L73
     def get_devices(self,include_immutable_id=True):
+        """
+        Extracts tenant devices
+
+        Args:
+            include_immutable_id (bool): defined if the immutable_id will be included (takes longer)
+
+        Returns:
+            list of dicts: [{"odata.type": "Microsoft.DirectoryServices.Device","objectType": "Device", ... }, ...]
+
+        """
+
         r = self.call_graphapi('devices')['value']
 
         result = []
@@ -131,6 +162,14 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L8
     def get_syncconfiguration(self):
+        """
+        Gets tenant's synchronization configuration using Provisioning and Azure AD Sync API.
+        If the user doesn't have admin rights, only a subset of information is returned.
+
+        Returns:
+            dicts: {'AllowedFeatures': 'None', 'AnchorAttribute': None, 'ApplicationVersion': None , ...}
+
+        """
         body = '''<GetCompanyConfiguration xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
             <includeLicenseInformation>false</includeLicenseInformation>
         </GetCompanyConfiguration>'''
@@ -272,6 +311,10 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3404
     def set_adsyncenabled(self,enabledirsync=True):
+        """
+        Enables or disables directory synchronization using provisioning API.
+        Enabling / disabling the synchrnoization usually takes less than 10 seconds. Check the status using Get-AADIntCompanyInformation.
+        """
         body = '''<b:EnableDirSync>%s</b:EnableDirSync>''' % str(bool(enabledirsync)).lower()
         message_id = str(uuid.uuid4())
         command = "SetCompanyDirSyncEnabled"
@@ -293,6 +336,7 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L784
     def remove_azureadoject(self,sourceanchor=None,objecttype=None):
+        """Removes Azure AD object using Azure AD Sync API"""
         body = '''<ProvisionAzureADSyncObjects xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">
 			<syncRequest xmlns:b="http://schemas.microsoft.com/online/aws/change/2014/06" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
 				<b:SyncObjects>
@@ -345,15 +389,6 @@ class AADInternals():
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
-
-    #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1800
-    def get_windowscredentialssyncconfig(self):
-        body = '''<GetWindowsCredentialsSyncConfig xmlns="http://schemas.microsoft.com/online/aws/change/2010/01"></GetWindowsCredentialsSyncConfig>'''
-        message_id = str(uuid.uuid4())
-        command = "GetWindowsCredentialsSyncConfig"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
-        response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
-        return self.binarytoxml(response)
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1881
     def get_syncdeviceconfiguration(self):
@@ -467,6 +502,9 @@ class AADInternals():
                 SecurityEnabled=None,
                 **kwargs
                 ):
+        """
+        Creates or updates Azure AD object using Azure AD Sync API. Can also set cloud-only user's sourceAnchor (ImmutableId) and onPremisesSAMAccountName. SourceAnchor can only be set once!
+        """
         tenant_id = self.tenant_id
 
         datakwargs = []
@@ -617,6 +655,10 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L1087
     def set_userpassword(self,cloudanchor=None,sourceanchor=None,userprincipalname=None,password=None,hashnt=None,changedate=None,iterations=1000,):
+        """
+        Sets the password of the given user using Azure AD Sync API. If the Result is 0, the change was successful.
+        Requires that Directory Synchronization is enabled for the tenant!
+        """
         tenant_id = self.tenant_id
         credentialdata = self.create_aadhash(hashnt=hashnt,password=password,iterations=iterations)
 
