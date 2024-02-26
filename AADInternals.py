@@ -812,7 +812,7 @@ class AADInternals():
         headers = {
             'Content-type': 'application/soap+xml'
         }
-        r = requests.post("https://provisioningapi.microsoftonline.com/provisioningwebservice.svc", headers=headers,data=envelope,proxies=self.proxies)
+        r = requests.post("https://provisioningapi.microsoftonline.com/provisioningwebservice.svc", headers=headers,data=envelope,proxies=self.proxies,timeout=15)
         return r.content
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L166
