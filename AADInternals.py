@@ -316,7 +316,6 @@ class AADInternals():
         Enabling / disabling the synchrnoization usually takes less than 10 seconds. Check the status using Get-AADIntCompanyInformation.
         """
         body = '''<b:EnableDirSync>%s</b:EnableDirSync>''' % str(bool(enabledirsync)).lower()
-        message_id = str(uuid.uuid4())
         command = "SetCompanyDirSyncEnabled"
         envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
