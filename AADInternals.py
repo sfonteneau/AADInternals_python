@@ -175,7 +175,7 @@ class AADInternals():
         </GetCompanyConfiguration>'''
         message_id = str(uuid.uuid4())
         command = "GetCompanyConfiguration"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         data = self.xml_to_result(self.binarytoxml(response),command)
         dict_data = {"AllowedFeatures" :                        data["AllowedFeatures"],
@@ -207,7 +207,7 @@ class AADInternals():
         </SetCompanyDirsyncFeatures>''' % feature
         message_id = str(uuid.uuid4())
         command = "SetCompanyDirsyncFeatures"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -215,7 +215,7 @@ class AADInternals():
     def get_companyinformation(self):
         body = '''<b:ReturnValue i:nil="true"/>''' 
         command = "GetCompanyInformation"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return  self.xml_to_result(response,command)['b:ReturnValue']
        
@@ -247,7 +247,7 @@ class AADInternals():
 			    <c:UsageLocation i:nil="true"/>
 		    </b:UserSearchDefinition>''' 
         command = "ListUsers"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return  self.xml_to_result(response,command)['b:ReturnValue']
 
@@ -256,7 +256,7 @@ class AADInternals():
         body = rf'''<b:ObjectId>{objectid}</b:ObjectId>
 		    <b:ReturnDeletedUsers>{str(returndeletedusers).lower()}</b:ReturnDeletedUsers>'''
         command = "GetUser"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return  self.xml_to_result(response,command)['b:ReturnValue']
 
@@ -264,7 +264,7 @@ class AADInternals():
     def get_group(self,objectid):
         body = rf'''<b:ObjectId>{objectid}</b:ObjectId>'''
         command = "GetGroup"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return  self.xml_to_result(response,command)['b:ReturnValue']
 
@@ -287,7 +287,7 @@ class AADInternals():
                 <c:UserPrincipalName i:nil="true"/>
             </b:GroupSearchDefinition>''' 
         command = "ListGroups"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return  self.xml_to_result(response,command)['b:ReturnValue']
 
@@ -303,7 +303,7 @@ class AADInternals():
 			    <c:MemberObjectTypes i:nil="true"/>
 		    </b:GroupMemberSearchDefinition>'''
         command = "ListGroupMembers"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return  self.xml_to_result(response,command)['b:ReturnValue']
 
@@ -318,7 +318,7 @@ class AADInternals():
         body = '''<b:EnableDirSync>%s</b:EnableDirSync>''' % str(bool(enabledirsync)).lower()
         message_id = str(uuid.uuid4())
         command = "SetCompanyDirSyncEnabled"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return self.xml_to_result(response,command)
 
@@ -330,7 +330,7 @@ class AADInternals():
             <b:RemoveLicenses i:nil="true"/>
             <b:LicenseOptions i:nil="true"/>'''
         command = "SetUserLicenses"
-        envelope  = self.create_envelope(self.token,command,body)
+        envelope  = self.create_envelope(command,body)
         response = self.call_provisioningapi(envelope)
         return response
 
@@ -352,7 +352,7 @@ class AADInternals():
 		</ProvisionAzureADSyncObjects>''' % (sourceanchor,objecttype)
         message_id = str(uuid.uuid4())
         command = "ProvisionAzureADSyncObjects"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -364,7 +364,7 @@ class AADInternals():
         </GetKerberosDomainSyncConfig>'''
         message_id = str(uuid.uuid4())
         command = "GetKerberosDomainSyncConfig"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -375,7 +375,7 @@ class AADInternals():
         </GetKerberosDomain>''' % domainname
         message_id = str(uuid.uuid4())
         command = "GetKerberosDomain"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -385,7 +385,7 @@ class AADInternals():
         body = '''<GetMonitoringTenantCertificate xmlns="http://schemas.microsoft.com/online/aws/change/2010/01"></GetMonitoringTenantCertificate>'''
         message_id = str(uuid.uuid4())
         command = "GetMonitoringTenantCertificate"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -395,7 +395,7 @@ class AADInternals():
         body = '''<GetDeviceConfiguration xmlns="http://schemas.microsoft.com/online/aws/change/2010/01"></GetDeviceConfiguration>'''
         message_id = str(uuid.uuid4())
         command = "GetDeviceConfiguration"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -405,7 +405,7 @@ class AADInternals():
         body = '''<Capabilities xmlns="http://schemas.microsoft.com/online/aws/change/2010/01" />'''
         message_id = str(uuid.uuid4())
         command = "Capabilities"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -417,7 +417,7 @@ class AADInternals():
 		</FinalizeExport>''' % (count,count)
         message_id = str(uuid.uuid4())
         command = "FinalizeExport"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         return self.binarytoxml(response)
 
@@ -441,7 +441,6 @@ class AADInternals():
             "BlockCloudObjectTakeoverThroughHardMatch": 1048576
         }
 
-        access_token = self.token
 
 
 
@@ -570,7 +569,7 @@ class AADInternals():
 
         message_id = str(uuid.uuid4())
         command = "ProvisionAzureADSyncObjects"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         rawresponse = self.call_adsyncapi(envelope,command,tenant_id,message_id)
         newresponse = self.xml_to_result(self.binarytoxml(rawresponse),command)['b:SyncObjectResults']['b:AzureADSyncObjectResult']
         if newresponse['b:ResultCode'] == 'Failure' or newresponse['b:ResultErrorDescription'] != {'@i:nil': 'true'}:
@@ -646,7 +645,7 @@ class AADInternals():
         </ReadBackAzureADSyncObjects%s>''' % (txtvers,fullsync,txtvers)
         message_id = str(uuid.uuid4())
         command = "ReadBackAzureADSyncObjects%s" % txtvers
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,self.tenant_id,message_id)
         dataxml = self.xml_to_result(self.binarytoxml(response),command)
         if dataxml.get('b:ResultObjects',{}) == None:
@@ -696,7 +695,7 @@ class AADInternals():
 
         message_id = str(uuid.uuid4())
         command = "ProvisionCredentials"
-        envelope  = self.create_syncenvelope(self.token,command,body,message_id,binary=True)
+        envelope  = self.create_syncenvelope(command,body,message_id,binary=True)
         response = self.call_adsyncapi(envelope,command,tenant_id,message_id)
         formatresponse = self.xml_to_result(self.binarytoxml(response),command)['b:Results']['b:SyncCredentialsChangeResult']
         if formatresponse['b:Result'] != '0':
@@ -729,7 +728,7 @@ class AADInternals():
         return aadhash
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI_utils.ps1#L64
-    def create_envelope(self,token,command,requestelements):
+    def create_envelope(self,command,requestelements):
         message_id = str(uuid.uuid4())
         envelope = rf'''
         <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing">
@@ -768,7 +767,7 @@ class AADInternals():
 
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L77
-    def create_syncenvelope(self,token,command,body,message_id,server="adminwebservice.microsoftonline.com",binary=True,isinstalledondc=False,richcoexistenceenabled=False,version=1):
+    def create_syncenvelope(self,command,body,message_id,server="adminwebservice.microsoftonline.com",binary=True,isinstalledondc=False,richcoexistenceenabled=False,version=1):
 
         if version == 2:
             applicationclient= "6eb59a73-39b2-4c23-a70f-e2e3ce8965b1"
@@ -780,7 +779,7 @@ class AADInternals():
             <a:Action s:mustUnderstand="1">http://schemas.microsoft.com/online/aws/change/2010/01/IProvisioningWebService/{command}</a:Action>
             <SyncToken s:role="urn:microsoft.online.administrativeservice" xmlns="urn:microsoft.online.administrativeservice" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
                 <ApplicationId xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{applicationclient}</ApplicationId>
-                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{token}</BearerToken>
+                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.token}</BearerToken>
                 <ClientVersion xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_version}</ClientVersion>
                 <DirSyncBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</DirSyncBuildNumber>
                 <FIMBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</FIMBuildNumber>
@@ -825,7 +824,6 @@ class AADInternals():
             "x-ms-aadmsods-dirsyncbuildnumber": aadsync_client_build,
             "User-Agent":"",
             "x-ms-aadmsods-fimbuildnumber":   aadsync_client_build,
-            "Host":"adminwebservice.microsoftonline.com",
             "x-ms-aadmsods-tenantid" : tenant_id,
             "client-request-id": message_id,
             "x-ms-aadmsods-appid":"1651564e-7ce4-4d99-88be-0a65050d8dc3",
