@@ -67,7 +67,9 @@ class AADInternals():
                         sys.exit(1)
 
                 context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'],proxies=proxies)
-                try:
+                delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.utcnow()
+
+                if delta.total_seconds() < 1800:
                     token_response = context.acquire_token_with_refresh_token(
                         old_token['refresh_token'],
                         old_token['_client_id'],
@@ -76,10 +78,10 @@ class AADInternals():
                     token_response['tenant_id'] = old_token['tenant_id']
                     token_response['resource'] = old_token['resource']
                     token_response['_client_id'] = old_token['_client_id']
-                    token_response['refresh_token'] = old_token['refresh_token']
+                    token_response['refresh_token'] = token_response['refreshToken']
                     token_response['access_token'] = token_response['accessToken']
-                except:
-                    pass
+                else:
+                    token_response = old_token
 
         if not token_response :
             if password :
