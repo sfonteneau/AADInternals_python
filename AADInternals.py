@@ -767,7 +767,7 @@ class AADInternals():
 
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L77
-    def create_syncenvelope(self,command,body,message_id,server="adminwebservice.microsoftonline.com",binary=True,isinstalledondc=False,richcoexistenceenabled=False,version=1):
+    def create_syncenvelope(self,command,body,message_id,server=aadsync_server,binary=True,isinstalledondc=False,richcoexistenceenabled=False,version=1):
 
         if version == 2:
             applicationclient= "6eb59a73-39b2-4c23-a70f-e2e3ce8965b1"
@@ -816,7 +816,7 @@ class AADInternals():
         return r.content
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L166
-    def call_adsyncapi(self,envelope,command,tenant_id,message_id,server="adminwebservice.microsoftonline.com"):
+    def call_adsyncapi(self,envelope,command,tenant_id,message_id,server=aadsync_server):
         headers = {
             "Host":server,
             'Content-type': 'application/soap+msbin1',
