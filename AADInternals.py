@@ -117,16 +117,16 @@ class AADInternals():
             token_response['_client_id'] = token_response['_clientId']
             token_response['refresh_token'] = token_response['refreshToken']
 
+        self.tenant_id = token_response['tenant_id']
+        self.token = token_response['access_token']
+        self.graphrbac_client = GraphRbacManagementClient(AADTokenCredentials(token_response),self.tenant_id)
+
         if save_to_cache:
             for e in ['accessToken','refreshToken','tenantId', '_clientId' ]:
                 if e in token_response:
                     del token_response[e]
             with open(cache_file,'w') as f:
                 f.write(json.dumps(token_response,indent=4))
-
-        self.tenant_id = token_response['tenant_id']
-        self.token = token_response['access_token']
-        self.graphrbac_client = GraphRbacManagementClient(AADTokenCredentials(token_response),self.tenant_id)
 
     #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
     def call_graphapi(self,Command,ApiVersion="1.61-internal",Method="Get",Body=None,Headers={},QueryString=None):
