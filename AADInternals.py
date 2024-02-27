@@ -70,16 +70,17 @@ class AADInternals():
                 delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.utcnow()
 
                 if delta.total_seconds() < 1800:
-                    token_response = context.acquire_token_with_refresh_token(
-                        old_token['refresh_token'],
-                        old_token['_client_id'],
-                        old_token['resource']
-                        )
-                    token_response['tenant_id'] = old_token['tenant_id']
-                    token_response['resource'] = old_token['resource']
-                    token_response['_client_id'] = old_token['_client_id']
-                    token_response['refresh_token'] = token_response['refreshToken']
-                    token_response['access_token'] = token_response['accessToken']
+                    if delta.days > -90:
+                        token_response = context.acquire_token_with_refresh_token(
+                            old_token['refresh_token'],
+                            old_token['_client_id'],
+                            old_token['resource']
+                            )
+                        token_response['tenant_id'] = old_token['tenant_id']
+                        token_response['resource'] = old_token['resource']
+                        token_response['_client_id'] = old_token['_client_id']
+                        token_response['refresh_token'] = token_response['refreshToken']
+                        token_response['access_token'] = token_response['accessToken']
                 else:
                     token_response = old_token
 
@@ -113,10 +114,12 @@ class AADInternals():
             token_response['_client_id'] = token_response['_clientId']
             token_response['refresh_token'] = token_response['refreshToken']
 
-        
         if save_to_cache:
+            for e in ['accessToken','refreshToken','tenantId', '_clientId' ]:
+                if e in token_response:
+                    del token_response[e]
             with open(cache_file,'w') as f:
-                f.write(json.dumps(token_response))
+                f.write(json.dumps(token_response,indent=4))
 
         self.tenant_id = token_response['tenant_id']
         self.token = token_response['access_token']
