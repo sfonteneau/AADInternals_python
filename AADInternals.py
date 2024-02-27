@@ -79,6 +79,7 @@ class AADInternals():
                         token_response['tenant_id'] = old_token['tenant_id']
                         token_response['resource'] = old_token['resource']
                         token_response['_client_id'] = old_token['_client_id']
+                        token_response['userId'] = old_token.get('userId','')
                         token_response['refresh_token'] = token_response['refreshToken']
                         token_response['access_token'] = token_response['accessToken']
                 else:
