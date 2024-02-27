@@ -27,6 +27,8 @@ import xmltodict
 aadsync_server=        "adminwebservice.microsoftonline.com"
 aadsync_client_version="8.0"
 aadsync_client_build=  "2.2.8.0"
+client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
+resource_id = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
 
 class AADInternals():
 
@@ -100,7 +102,7 @@ class AADInternals():
                 sys.exit(1)
             TEMPLATE_AUTHZ_URL = ('https://login.windows.net/{}/oauth2/authorize?' + 'response_type=code&client_id={}&redirect_uri={}&' +'state={}&resource={}')
             auth_state = (''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits)for _ in range(48)))
-            authorization_url = TEMPLATE_AUTHZ_URL.format(tenant_id,"04b07795-8ddb-461a-bbee-02f9e1bf7b46","http://localhost",auth_state,"2ff814a6-3304-4ab8-85cb-cd0e6f879c1d")
+            authorization_url = TEMPLATE_AUTHZ_URL.format(tenant_id,client_id,"http://localhost",auth_state,resource_id)
             print('visit this website and give the link back which goes to localhost:')
             print(authorization_url)  
             respurl = input('\n\nURL returned by Microsoft : \n')
@@ -109,7 +111,7 @@ class AADInternals():
             if state != auth_state:
                 raise ValueError('state does not match')
             context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id,proxies=proxies)
-            token_response = context.acquire_token_with_authorization_code(code,"http://localhost",'https://graph.windows.net',"04b07795-8ddb-461a-bbee-02f9e1bf7b46")
+            token_response = context.acquire_token_with_authorization_code(code,"http://localhost",'https://graph.windows.net',client_id)
             token_response['tenant_id'] = tenant_id
             token_response['access_token'] = token_response['accessToken']
             token_response['_client_id'] = token_response['_clientId']
