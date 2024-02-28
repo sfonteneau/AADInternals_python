@@ -1,6 +1,6 @@
 from AADInternals import AADInternals
 
-#[DEPRECATED] Available only if multi-factor authentication NOT enable (:
+#[DEPRECATED] Available only if multi-factor authentication NOT enable :
 #az = AADInternals(mail="admin@mydomain.com",password="password")
 
 #[RECOMMENDED] Mandatory if multi-factor authentication enable :
