@@ -69,7 +69,8 @@ class AADInternals():
                         sys.exit(1)
 
                 context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'],proxies=proxies)
-                delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.utcnow()
+                # expiresOn not in utc : https://github.com/AzureAD/azure-activedirectory-library-for-python/issues/165
+                delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.now()
 
                 if delta.total_seconds() < 1800:
                     if delta.days > -90:
