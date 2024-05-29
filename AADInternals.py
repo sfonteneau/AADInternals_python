@@ -32,7 +32,7 @@ resource_id = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
 
 class AADInternals():
 
-    def __init__(self, mail=None, password=None,proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json')):
+    def __init__(self, mail=None, password=None,proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None):
         """
         Establish a connection with Microsoft and attempts to retrieve a token from Microsoft servers.
         Is initialization interactive if cache is not available : (M.F.A.)
@@ -56,7 +56,10 @@ class AADInternals():
         self.proxies=proxies
         token_response = None
         self.requests_session_call_adsyncapi = requests.Session()
-        
+
+        if domain and (not tenant_id):
+            data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies).content.decode('utf-8')
+            tenant_id = json.loads(data)['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
 
         if use_cache:
             if os.path.isfile(cache_file) :
