@@ -104,18 +104,15 @@ class AADInternals():
             if not tenant_id:
                 print('Error, Please provide tenant_id')
                 sys.exit(1)
-            TEMPLATE_AUTHZ_URL = ('https://login.windows.net/{}/oauth2/authorize?' + 'response_type=code&client_id={}&redirect_uri={}&' +'state={}&resource={}')
-            auth_state = (''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits)for _ in range(48)))
-            authorization_url = TEMPLATE_AUTHZ_URL.format(tenant_id,client_id,"http://localhost",auth_state,resource_id)
-            print('visit this website and give the link back which goes to localhost:')
-            print(authorization_url)  
-            respurl = input('\n\nURL returned by Microsoft : \n')
-            code=parse.parse_qs(parse.urlparse(respurl).query)['code'][0]
-            state = parse.parse_qs(parse.urlparse(respurl).query)['state'][0]
-            if state != auth_state:
-                raise ValueError('state does not match')
             context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id,proxies=proxies)
-            token_response = context.acquire_token_with_authorization_code(code,"http://localhost",'https://graph.windows.net',client_id)
+            code = context.acquire_user_code(
+                'https://graph.windows.net', client_id)
+            message = code['message']
+            print(message)
+            token_response = context.acquire_token_with_device_code('https://graph.windows.net',
+                                                   code,
+                                                   client_id)
+
             token_response['tenant_id'] = tenant_id
             token_response['access_token'] = token_response['accessToken']
             token_response['_client_id'] = token_response['_clientId']
