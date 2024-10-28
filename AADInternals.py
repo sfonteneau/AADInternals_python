@@ -28,7 +28,6 @@ aadsync_server=        "adminwebservice.microsoftonline.com"
 aadsync_client_version="8.0"
 aadsync_client_build=  "2.2.8.0"
 client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
-resource_id = "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
 
 class AADInternals():
 
