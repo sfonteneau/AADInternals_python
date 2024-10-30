@@ -1,8 +1,5 @@
 from AADInternals import AADInternals
 
-#[DEPRECATED] Available only if multi-factor authentication NOT enable :
-#az = AADInternals(mail="admin@mydomain.com",password="password")
-
 #[RECOMMENDED] Mandatory if multi-factor authentication enable :
 #az = AADInternals(tenant_id='00000000-0000-0000-0000-000000000000')
 az = AADInternals(domain='mydomain.com')
