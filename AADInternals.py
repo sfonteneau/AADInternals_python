@@ -1,9 +1,6 @@
-from azure.common.credentials import UserPassCredentials
-from azure.graphrbac import GraphRbacManagementClient
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
 from adal import AuthenticationContext
-from msrestazure.azure_active_directory import AADTokenCredentials
 from urllib import parse
 import string
 import json
@@ -31,14 +28,12 @@ client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
 class AADInternals():
 
-    def __init__(self, mail=None, password=None,proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None):
+    def __init__(self, proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None):
         """
         Establish a connection with Microsoft and attempts to retrieve a token from Microsoft servers.
         Is initialization interactive if cache is not available : (M.F.A.)
 
         Args:
-            mail (str): Deprecated , Login azure ad (Requires a right global admin), Can be left as None to use a browser connection (MFA, recommended)
-            password (str): password associated with that of the e-mail if the e-mail is entered
             proxies (dict): Specify proxies if needed.
             use_cache (bool): Define if the cache_file is used (last token generated if exists)
             save_to_cache (bool): Define if the token give is backup in cache_file
@@ -94,15 +89,6 @@ class AADInternals():
                     token_response = old_token
 
         if not token_response :
-            if password :
-                try:
-                    self.credentials = UserPassCredentials(mail, password, resource="https://graph.windows.net",proxies=proxies)
-                    token_response = self.credentials.token
-                    tenant_id = token_response['tenant_id']
-                except:
-                    pass
-        
-        if not token_response :
             if not tenant_id:
                 print('Error, Please provide tenant_id')
                 sys.exit(1)
@@ -122,7 +108,6 @@ class AADInternals():
 
         self.tenant_id = token_response['tenant_id']
         self.token = token_response['access_token']
-        self.graphrbac_client = GraphRbacManagementClient(AADTokenCredentials(token_response),self.tenant_id)
 
         if save_to_cache:
             for e in ['accessToken','refreshToken','tenantId', '_clientId' ]:
@@ -596,17 +581,17 @@ class AADInternals():
             else:
                 raise Exception(dataxml)
 
-
     #Official api for search
-    def search_user(self,upn_or_object_id):
-        return self.graphrbac_client.users.get(upn_or_object_id,proxies=self.proxies)
-
-    def list_users(self,):
-        result = []
-        for entry in list(self.graphrbac_client.users.list(proxies=self.proxies)) :
-            result.append(entry.as_dict())
+    def search_user(self, upn_or_object_id):
+        return self.call_graphapi(f'users/{upn_or_object_id}')
+    
+    def list_users(self):
+        result = [] 
+        response = self.call_graphapi('users')
+        for entry in response.get('value', []):
+            result.append(entry)  
         return result
-
+    
     def get_dict_cloudanchor_sourceanchor(self):
         dict_cloudanchor_sourceanchor = {}
         for entry in self.get_syncobjects(False):
@@ -632,10 +617,12 @@ class AADInternals():
             dict_cloudanchor_sourceanchor = self.get_dict_cloudanchor_sourceanchor()
         else:
             dict_cloudanchor_sourceanchor = {}
-        for entry in list(self.graphrbac_client.groups.list(proxies=self.proxies)) :
-            data = entry.as_dict()
-            if str('Group_' + data['object_id']) in dict_cloudanchor_sourceanchor:
-                data['immutable_id'] = dict_cloudanchor_sourceanchor[str('Group_' + data['object_id'])]
+        
+        response = self.call_graphapi('groups')
+        for entry in response.get('value', []):
+            data = entry  
+            if str('Group_' + data['objectId']) in dict_cloudanchor_sourceanchor:
+                data['immutable_id'] = dict_cloudanchor_sourceanchor[str('Group_' + data['objectId'])]
             else:
                 if include_immutable_id :
                     data['immutable_id'] = None
@@ -672,7 +659,7 @@ class AADInternals():
         credentialdata = self.create_aadhash(hashnt=hashnt,password=password,iterations=iterations)
 
         if userprincipalname and (not cloudanchor) and (not sourceanchor):
-            cloudanchor = 'User_' + self.search_user(userprincipalname).object_id
+            cloudanchor = 'User_' + self.search_user(userprincipalname)['objectId']
 
         if not changedate :
             changedate = datetime.datetime.now()
@@ -889,3 +876,4 @@ class AADInternals():
         r = XMLParser.parse(dataxml)
         data = dump_records(r)
         return data
+
