@@ -1,4 +1,4 @@
-azure-graphrbac
+adal
 requests
 passlib
 xmltodict
