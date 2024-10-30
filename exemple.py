@@ -1,6 +1,5 @@
 from AADInternals import AADInternals
 
-#[RECOMMENDED] Mandatory if multi-factor authentication enable :
 #az = AADInternals(tenant_id='00000000-0000-0000-0000-000000000000')
 az = AADInternals(domain='mydomain.com')
 
