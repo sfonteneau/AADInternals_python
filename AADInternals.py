@@ -51,6 +51,9 @@ class AADInternals():
         >>> az = AADInternals(tenant_id='00000000-0000-0000-0000-000000000000')
 
         """
+	
+        if tenant_id == False and domain == False:
+            return None
 
         self.proxies=proxies
         token_response = None
