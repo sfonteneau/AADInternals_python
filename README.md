@@ -19,7 +19,7 @@ Install dependency
 -----------------------------
 
 ```
-apt-get install python3-passlib python3-xmltodict python3-requests python3-azure -y
+apt-get install python3-passlib python3-xmltodict python3-requests python3-adal -y
 ```
 
 
