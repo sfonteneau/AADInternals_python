@@ -63,13 +63,15 @@ class AADInternals():
         self.tenant_id = tenant_id
 
         if use_cache:
+            old_token={}
             token_cache = msal.SerializableTokenCache()
             if os.path.isfile(cache_file) :
                 with open(cache_file,'r') as f:
+                    old_token=json.loads(f.read())
                     token_cache.deserialize(f.read())
         else:
             token_cache = msal.TokenCache()
-
+ 
         app = msal.PublicClientApplication(
             client_id,
             authority=f"https://login.microsoftonline.com/{tenant_id}",
@@ -78,6 +80,9 @@ class AADInternals():
         )
 
         if use_cache:
+            #Add backwards compatibility
+            if "refresh_token" in old_token:
+                token_response = app.acquire_token_by_refresh_token(refresh_token=old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
             accounts = app.get_accounts()
             if accounts:
                 result = app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=accounts[0])
