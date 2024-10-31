@@ -74,7 +74,7 @@ class AADInternals():
                         app = msal.PublicClientApplication(
                             client_id,
                             authority=f"https://login.microsoftonline.com/{tenant_id}",
-                            http_client=self.proxies
+                            proxies=self.proxies
                         )
                
                         token_response = app.acquire_token_by_refresh_token(
@@ -96,7 +96,7 @@ class AADInternals():
             app = msal.PublicClientApplication(
                 client_id,
                 authority=f"https://login.microsoftonline.com/{tenant_id}",
-                http_client=self.proxies
+                proxies=self.proxies
             )
     
             flow = app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
