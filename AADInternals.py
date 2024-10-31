@@ -66,7 +66,7 @@ class AADInternals():
                         print('ERROR New tenant_id detect, please delete %s' % cache_file)             
                         sys.exit(1)
 
-                delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.now()
+                delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.utcnow()
 
                 if delta.total_seconds() < 300:
                     if delta.days > -90:
@@ -82,7 +82,7 @@ class AADInternals():
                             scopes=["https://graph.windows.net/.default"]
                         )
 
-                        expires_on = datetime.datetime.now() + datetime.timedelta(seconds=token_response['expires_in'])
+                        expires_on = datetime.datetime.utcnow() + datetime.timedelta(seconds=token_response['expires_in'])
                         token_response['expiresOn'] = expires_on.strftime('%Y-%m-%d %H:%M:%S.%f')
                         token_response['tenant_id'] = old_token['tenant_id']
                 else:
@@ -106,7 +106,7 @@ class AADInternals():
 
             self.tenant_id = token_response['id_token_claims']["tid"]
             token_response['tenant_id'] = tenant_id 
-            expires_on = datetime.datetime.now() + datetime.timedelta(seconds=token_response['expires_in']) 
+            expires_on = datetime.datetime.utcnow() + datetime.timedelta(seconds=token_response['expires_in']) 
             token_response['expiresOn'] = expires_on.strftime('%Y-%m-%d %H:%M:%S.%f')
 
 
