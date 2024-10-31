@@ -67,8 +67,9 @@ class AADInternals():
             token_cache = msal.SerializableTokenCache()
             if os.path.isfile(cache_file) :
                 with open(cache_file,'r') as f:
-                    old_token=json.loads(f.read())
-                    token_cache.deserialize(f.read())
+                    data= f.read()
+                    token_cache.deserialize(data)
+                    old_token=json.loads(data)
         else:
             token_cache = msal.TokenCache()
  
