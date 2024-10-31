@@ -1,8 +1,6 @@
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
 from adal import AuthenticationContext
-from urllib import parse
-import string
 import json
 import sys
 import os
