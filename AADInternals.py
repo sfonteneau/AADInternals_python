@@ -87,10 +87,13 @@ class AADInternals():
             if "refresh_token" in old_token:
                 token_response = app.acquire_token_by_refresh_token(refresh_token=old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
             accounts = app.get_accounts()
-            if accounts:
-                result = app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=accounts[0])
+            for account in accounts:
+                if account['realm'] != tenant_id:
+                    continue
+                result = app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=account)
                 if result:
                     token_response = result
+                    break
     
         if not token_response :
             flow = app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
