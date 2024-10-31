@@ -1,6 +1,6 @@
 from hashlib import pbkdf2_hmac
 from passlib.hash import nthash
-from adal import AuthenticationContext
+import msal
 import json
 import sys
 import os
@@ -66,23 +66,25 @@ class AADInternals():
                         print('ERROR New tenant_id detect, please delete %s' % cache_file)             
                         sys.exit(1)
 
-                context = AuthenticationContext("https://login.microsoftonline.com/" + old_token['tenant_id'],proxies=proxies)
-                # expiresOn not in utc : https://github.com/AzureAD/azure-activedirectory-library-for-python/issues/165
                 delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.now()
 
                 if delta.total_seconds() < 300:
                     if delta.days > -90:
-                        token_response = context.acquire_token_with_refresh_token(
-                            old_token['refresh_token'],
-                            old_token['_client_id'],
-                            old_token['resource']
-                            )
+
+                        app = msal.PublicClientApplication(
+                            client_id,
+                            authority=f"https://login.microsoftonline.com/{tenant_id}",
+                            http_client=self.proxies
+                        )
+               
+                        token_response = app.acquire_token_by_refresh_token(
+                            refresh_token=old_token['refresh_token'],
+                            scopes=["https://graph.windows.net/.default"]
+                        )
+
+                        expires_on = datetime.datetime.now() + datetime.timedelta(seconds=token_response['expires_in'])
+                        token_response['expiresOn'] = expires_on.strftime('%Y-%m-%d %H:%M:%S.%f')
                         token_response['tenant_id'] = old_token['tenant_id']
-                        token_response['resource'] = old_token['resource']
-                        token_response['_client_id'] = old_token['_client_id']
-                        token_response['userId'] = old_token.get('userId','')
-                        token_response['refresh_token'] = token_response['refreshToken']
-                        token_response['access_token'] = token_response['accessToken']
                 else:
                     token_response = old_token
 
@@ -90,23 +92,26 @@ class AADInternals():
             if not tenant_id:
                 print('Error, Please provide tenant_id')
                 sys.exit(1)
-            context = AuthenticationContext("https://login.microsoftonline.com/" + tenant_id,proxies=proxies)
-            code = context.acquire_user_code(
-                'https://graph.windows.net', client_id)
-            message = code['message']
-            print(message)
-            token_response = context.acquire_token_with_device_code('https://graph.windows.net',
-                                                   code,
-                                                   client_id)
 
-            token_response['tenant_id'] = tenant_id
-            token_response['access_token'] = token_response['accessToken']
-            token_response['_client_id'] = token_response['_clientId']
-            token_response['refresh_token'] = token_response['refreshToken']
+            app = msal.PublicClientApplication(
+                client_id,
+                authority=f"https://login.microsoftonline.com/{tenant_id}",
+                http_client=self.proxies
+            )
+    
+            flow = app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
+            print(flow["message"]) 
+            
+            token_response = app.acquire_token_by_device_flow(flow)
+
+            self.tenant_id = token_response['id_token_claims']["tid"]
+            token_response['tenant_id'] = tenant_id 
+            expires_on = datetime.datetime.now() + datetime.timedelta(seconds=token_response['expires_in']) 
+            token_response['expiresOn'] = expires_on.strftime('%Y-%m-%d %H:%M:%S.%f')
+
 
         self.tenant_id = token_response['tenant_id']
         self.token = token_response['access_token']
-
         if save_to_cache:
             for e in ['accessToken','refreshToken','tenantId', '_clientId' ]:
                 if e in token_response:

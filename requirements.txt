@@ -1,4 +1,4 @@
-adal
+msal
 requests
 passlib
 xmltodict
