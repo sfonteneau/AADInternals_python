@@ -56,68 +56,44 @@ class AADInternals():
             data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies).content.decode('utf-8')
             tenant_id = json.loads(data)['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
 
+        if not tenant_id:
+            print('Error, Please provide tenant_id')
+            sys.exit(1)
+
+        self.tenant_id = tenant_id
+
         if use_cache:
+            token_cache = msal.SerializableTokenCache()
             if os.path.isfile(cache_file) :
                 with open(cache_file,'r') as f:
-                    old_token=json.loads(f.read())
+                    token_cache.deserialize(f.read())
+        else:
+            token_cache = msal.TokenCache()
 
-                if tenant_id :
-                    if tenant_id != old_token['tenant_id']:
-                        print('ERROR New tenant_id detect, please delete %s' % cache_file)             
-                        sys.exit(1)
+        app = msal.PublicClientApplication(
+            client_id,
+            authority=f"https://login.microsoftonline.com/{tenant_id}",
+            proxies=self.proxies,
+            token_cache=token_cache
+        )
 
-                delta =  datetime.datetime.strptime(old_token.get('expiresOn','2020-01-01 00:00:00.180897'), '%Y-%m-%d %H:%M:%S.%f') - datetime.datetime.utcnow()
-
-                if delta.total_seconds() < 300:
-                    if delta.days > -90:
-
-                        app = msal.PublicClientApplication(
-                            client_id,
-                            authority=f"https://login.microsoftonline.com/{tenant_id}",
-                            proxies=self.proxies
-                        )
-               
-                        token_response = app.acquire_token_by_refresh_token(
-                            refresh_token=old_token['refresh_token'],
-                            scopes=["https://graph.windows.net/.default"]
-                        )
-
-                        expires_on = datetime.datetime.utcnow() + datetime.timedelta(seconds=token_response['expires_in'])
-                        token_response['expiresOn'] = expires_on.strftime('%Y-%m-%d %H:%M:%S.%f')
-                        token_response['tenant_id'] = old_token['tenant_id']
-                else:
-                    token_response = old_token
-
-        if not token_response :
-            if not tenant_id:
-                print('Error, Please provide tenant_id')
-                sys.exit(1)
-
-            app = msal.PublicClientApplication(
-                client_id,
-                authority=f"https://login.microsoftonline.com/{tenant_id}",
-                proxies=self.proxies
-            )
+        if use_cache:
+            accounts = app.get_accounts()
+            if accounts:
+                result = app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=accounts[0])
+                if result:
+                    token_response = result
     
+        if not token_response :
             flow = app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
             print(flow["message"]) 
-            
             token_response = app.acquire_token_by_device_flow(flow)
 
-            self.tenant_id = token_response['id_token_claims']["tid"]
-            token_response['tenant_id'] = tenant_id 
-            expires_on = datetime.datetime.utcnow() + datetime.timedelta(seconds=token_response['expires_in']) 
-            token_response['expiresOn'] = expires_on.strftime('%Y-%m-%d %H:%M:%S.%f')
-
-
-        self.tenant_id = token_response['tenant_id']
         self.token = token_response['access_token']
+
         if save_to_cache:
-            for e in ['accessToken','refreshToken','tenantId', '_clientId' ]:
-                if e in token_response:
-                    del token_response[e]
             with open(cache_file,'w') as f:
-                f.write(json.dumps(token_response,indent=4))
+                f.write(token_cache.serialize())
 
     #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
     def call_graphapi(self,Command,ApiVersion="1.61-internal",Method="Get",Body=None,Headers={},QueryString=None):
