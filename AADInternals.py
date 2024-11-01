@@ -44,6 +44,12 @@ class AADInternals():
         >>> az = AADInternals(tenant_id='00000000-0000-0000-0000-000000000000')
 
         """
+        if tenant_id == False and domain == False:
+            return None
+
+        if not tenant_id:
+            print('Error, Please provide tenant_id')
+            sys.exit(1)
 	
         self.proxies=proxies
         self.use_cache=use_cache
