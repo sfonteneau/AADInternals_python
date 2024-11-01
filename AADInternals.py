@@ -47,10 +47,6 @@ class AADInternals():
         if tenant_id == False and domain == False:
             return None
 
-        if not tenant_id:
-            print('Error, Please provide tenant_id')
-            sys.exit(1)
-	
         self.proxies=proxies
         self.use_cache=use_cache
         self.save_to_cache=save_to_cache
@@ -61,6 +57,10 @@ class AADInternals():
         if domain and (not tenant_id):
             data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies).content.decode('utf-8')
             tenant_id = json.loads(data)['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
+
+        if not tenant_id:
+            print('Error, Please provide tenant_id')
+            sys.exit(1)
 
         self.tenant_id = tenant_id
 
