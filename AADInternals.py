@@ -45,70 +45,72 @@ class AADInternals():
 
         """
 	
-        if tenant_id == False and domain == False:
-            return None
-
         self.proxies=proxies
-        token_response = None
+        self.use_cache=use_cache
+        self.save_to_cache=save_to_cache
+        self.cache_file=cache_file
+
         self.requests_session_call_adsyncapi = requests.Session()
 
         if domain and (not tenant_id):
             data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies).content.decode('utf-8')
             tenant_id = json.loads(data)['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
 
-        if not tenant_id:
-            print('Error, Please provide tenant_id')
-            sys.exit(1)
-
         self.tenant_id = tenant_id
 
-        if use_cache:
-            old_token={}
-            token_cache = msal.SerializableTokenCache()
-            if os.path.isfile(cache_file) :
-                with open(cache_file,'r') as f:
+        if self.use_cache:
+            self.old_token={}
+            self.token_cache = msal.SerializableTokenCache()
+            if os.path.isfile(self.cache_file) :
+                with open(self.cache_file,'r') as f:
                     data= f.read()
-                    token_cache.deserialize(data)
-                    old_token=json.loads(data)
-                    if "refresh_token" in old_token:
-                        token_cache = msal.SerializableTokenCache()
+                    self.token_cache.deserialize(data)
+                    self.old_token=json.loads(data)
+                    if "refresh_token" in self.old_token:
+                        self.token_cache = msal.SerializableTokenCache()
         else:
-            token_cache = msal.TokenCache()
- 
-        app = msal.PublicClientApplication(
+            self.token_cache = msal.TokenCache()
+
+        self.app = msal.PublicClientApplication(
             client_id,
             authority=f"https://login.microsoftonline.com/{tenant_id}",
             proxies=self.proxies,
-            token_cache=token_cache
+            token_cache=self.token_cache
         )
-
-        if use_cache:
+ 
+    def get_token(self):
+        token_response = None
+    
+        if self.use_cache:
             #Add backwards compatibility
-            if "refresh_token" in old_token:
-                token_response = app.acquire_token_by_refresh_token(refresh_token=old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
-            accounts = app.get_accounts()
+            if "refresh_token" in self.old_token:
+                token_response = self.app.acquire_token_by_refresh_token(refresh_token=old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
+                self.old_token={}
+
+            accounts = self.app.get_accounts()
             for account in accounts:
-                if account['realm'] != tenant_id:
+                if account['realm'] != self.tenant_id:
                     continue
-                result = app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=account)
+                result = self.app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=account)
                 if result:
                     token_response = result
                     break
-    
+        
         if not token_response :
-            flow = app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
+            flow = self.app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
             print(flow["message"]) 
-            token_response = app.acquire_token_by_device_flow(flow)
-
-        self.token = token_response['access_token']
-
-        if save_to_cache:
-            with open(cache_file,'w') as f:
-                f.write(token_cache.serialize())
-
+            token_response = self.app.acquire_token_by_device_flow(flow)
+    
+        if self.save_to_cache:
+            if self.token_cache.has_state_changed:
+                with open(self.cache_file,'w') as f:
+                    f.write(self.token_cache.serialize())
+                self.token_cache.has_state_changed = False
+        return token_response['access_token']
+    
     #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
     def call_graphapi(self,Command,ApiVersion="1.61-internal",Method="Get",Body=None,Headers={},QueryString=None):
-        Headers['Authorization'] = "Bearer %s" % self.token
+        Headers['Authorization'] = "Bearer %s" % self.get_token()
         Headers['Content-type'] = 'application/json; charset=utf-8'
 
         r = getattr(requests, Method.lower())
@@ -726,7 +728,7 @@ class AADInternals():
 			        <a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>
 		        </a:ReplyTo>
 		        <UserIdentityHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.token}</BearerToken>
+			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.get_token()}</BearerToken>
 			        <LiveToken i:nil="true" xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService"/>
 		        </UserIdentityHeader>
 		        <ClientVersionHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
@@ -766,7 +768,7 @@ class AADInternals():
             <a:Action s:mustUnderstand="1">http://schemas.microsoft.com/online/aws/change/2010/01/IProvisioningWebService/{command}</a:Action>
             <SyncToken s:role="urn:microsoft.online.administrativeservice" xmlns="urn:microsoft.online.administrativeservice" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
                 <ApplicationId xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{applicationclient}</ApplicationId>
-                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.token}</BearerToken>
+                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token()}</BearerToken>
                 <ClientVersion xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_version}</ClientVersion>
                 <DirSyncBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</DirSyncBuildNumber>
                 <FIMBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</FIMBuildNumber>
