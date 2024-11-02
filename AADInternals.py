@@ -84,7 +84,7 @@ class AADInternals():
             token_cache=self.token_cache
         )
  
-    def get_token(self):
+    def get_token(self,scope="https://graph.windows.net/.default"):
         token_response = None
     
         if self.use_cache:
@@ -97,13 +97,13 @@ class AADInternals():
             for account in accounts:
                 if account['realm'] != self.tenant_id:
                     continue
-                result = self.app.acquire_token_silent(scopes=["https://graph.windows.net/.default"], account=account)
+                result = self.app.acquire_token_silent(scopes=[scope], account=account)
                 if result:
                     token_response = result
                     break
         
         if not token_response :
-            flow = self.app.initiate_device_flow(scopes=["https://graph.windows.net/.default"])
+            flow = self.app.initiate_device_flow(scopes=[scope])
             print(flow["message"]) 
             token_response = self.app.acquire_token_by_device_flow(flow)
     
@@ -115,44 +115,17 @@ class AADInternals():
         return token_response['access_token']
     
     #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
-    def call_graphapi(self,Command,ApiVersion="1.61-internal",Method="Get",Body=None,Headers={},QueryString=None):
-        Headers['Authorization'] = "Bearer %s" % self.get_token()
-        Headers['Content-type'] = 'application/json; charset=utf-8'
+    def call_graphapi(self,Command,select=''):
 
-        r = getattr(requests, Method.lower())
-
-        data = r(rf"https://graph.windows.net/{self.tenant_id}/{Command}?api-version={ApiVersion}{QueryString if QueryString else ''}", headers=Headers,data=Body,proxies=self.proxies)
-        return json.loads(data.content)
-
-    #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI.ps1#L73
-    def get_devices(self,include_immutable_id=True):
-        """
-        Extracts tenant devices
-
-        Args:
-            include_immutable_id (bool): defined if the immutable_id will be included (takes longer)
-
-        Returns:
-            list of dicts: [{"odata.type": "Microsoft.DirectoryServices.Device","objectType": "Device", ... }, ...]
-
-        """
-
-        r = self.call_graphapi('devices')['value']
-
-        result = []
-        if include_immutable_id:
-            dict_cloudanchor_sourceanchor = self.get_dict_cloudanchor_sourceanchor()
-        else:
-            dict_cloudanchor_sourceanchor = {}
-
-        for data in r :
-            if str('Device_' + data['objectId']) in dict_cloudanchor_sourceanchor:
-                data['immutable_id'] = dict_cloudanchor_sourceanchor[str('Device_' + data['objectId'])]
-            else:
-                if include_immutable_id :
-                    data['immutable_id'] = None
-            result.append(data)
-        return result
+        if select:
+            select = "?$select=%s" % select
+        response = requests.get(
+            f"https://graph.microsoft.com/v1.0/{Command}{select}",
+            headers={"Authorization": f"Bearer {self.get_token('https://graph.microsoft.com/.default')}"}
+        )
+        
+        return response.json().get('value', [])
+    
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L8
     def get_syncconfiguration(self):
@@ -580,13 +553,13 @@ class AADInternals():
                 raise Exception(dataxml)
 
     #Official api for search
-    def search_user(self, upn_or_object_id):
-        return self.call_graphapi(f'users/{upn_or_object_id}')
+    def search_user(self, upn_or_object_id,select=""):
+        return self.call_graphapi(f'users/{upn_or_object_id}',select="")
     
-    def list_users(self):
+    def list_users(self,select=''):
         result = [] 
-        response = self.call_graphapi('users')
-        for entry in response.get('value', []):
+        response = self.call_graphapi('users',select=select)
+        for entry in response:
             result.append(entry)  
         return result
     
@@ -609,23 +582,45 @@ class AADInternals():
 
         return dict_cloudanchor_sourceanchor
 
-    def list_groups(self,include_immutable_id=True):
+    def list_groups(self,include_immutable_id=True,select=""):
+
         result = []
         if include_immutable_id:
             dict_cloudanchor_sourceanchor = self.get_dict_cloudanchor_sourceanchor()
         else:
             dict_cloudanchor_sourceanchor = {}
         
-        response = self.call_graphapi('groups')
-        for entry in response.get('value', []):
+        response = self.call_graphapi('groups',select=select)
+        for entry in response:
             data = entry  
-            if str('Group_' + data['objectId']) in dict_cloudanchor_sourceanchor:
-                data['immutable_id'] = dict_cloudanchor_sourceanchor[str('Group_' + data['objectId'])]
+            if str('Group_' + data['id']) in dict_cloudanchor_sourceanchor:
+                data['onPremisesImmutableId'] = dict_cloudanchor_sourceanchor[str('Group_' + data['id'])]
             else:
                 if include_immutable_id :
-                    data['immutable_id'] = None
+                    data['onPremisesImmutableId'] = None
             result.append(data)
         return result
+
+    def list_devices(self,include_immutable_id=True,select=""):
+
+        result = []
+        if include_immutable_id:
+            dict_cloudanchor_sourceanchor = self.get_dict_cloudanchor_sourceanchor()
+        else:
+            dict_cloudanchor_sourceanchor = {}
+        
+        response = self.call_graphapi('devices',select=select)
+        for entry in response:
+            data = entry  
+            if str('Device_' + data['id']) in dict_cloudanchor_sourceanchor:
+                data['onPremisesImmutableId'] = dict_cloudanchor_sourceanchor[str('Device_' + data['id'])]
+            else:
+                if include_immutable_id :
+                    data['onPremisesImmutableId'] = None
+            result.append(data)
+        return result
+
+
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L927
     def get_syncobjects(self,fullsync=True,version=2):
@@ -734,7 +729,7 @@ class AADInternals():
 			        <a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>
 		        </a:ReplyTo>
 		        <UserIdentityHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.get_token()}</BearerToken>
+			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.get_token(scope="https://graph.windows.net/.default")}</BearerToken>
 			        <LiveToken i:nil="true" xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService"/>
 		        </UserIdentityHeader>
 		        <ClientVersionHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
@@ -774,7 +769,7 @@ class AADInternals():
             <a:Action s:mustUnderstand="1">http://schemas.microsoft.com/online/aws/change/2010/01/IProvisioningWebService/{command}</a:Action>
             <SyncToken s:role="urn:microsoft.online.administrativeservice" xmlns="urn:microsoft.online.administrativeservice" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
                 <ApplicationId xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{applicationclient}</ApplicationId>
-                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token()}</BearerToken>
+                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token(scope="https://graph.windows.net/.default")}</BearerToken>
                 <ClientVersion xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_version}</ClientVersion>
                 <DirSyncBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</DirSyncBuildNumber>
                 <FIMBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</FIMBuildNumber>
