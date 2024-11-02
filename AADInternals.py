@@ -84,7 +84,7 @@ class AADInternals():
             token_cache=self.token_cache
         )
  
-    def get_token(self,scope="https://graph.windows.net/.default"):
+    def get_token(self,scope=["https://graph.windows.net/.default"]):
         token_response = None
     
         if self.use_cache:
@@ -97,13 +97,13 @@ class AADInternals():
             for account in accounts:
                 if account['realm'] != self.tenant_id:
                     continue
-                result = self.app.acquire_token_silent(scopes=[scope], account=account)
+                result = self.app.acquire_token_silent(scopes=scope, account=account)
                 if result:
                     token_response = result
                     break
         
         if not token_response :
-            flow = self.app.initiate_device_flow(scopes=[scope])
+            flow = self.app.initiate_device_flow(scopes=scope)
             print(flow["message"]) 
             token_response = self.app.acquire_token_by_device_flow(flow)
     
@@ -121,7 +121,7 @@ class AADInternals():
             select = "?$select=%s" % select
         response = requests.get(
             f"https://graph.microsoft.com/v1.0/{Command}{select}",
-            headers={"Authorization": f"Bearer {self.get_token('https://graph.microsoft.com/.default')}"}
+            headers={"Authorization": f"Bearer {self.get_token(['https://graph.microsoft.com/.default'])}"}
         )
         
         return response.json().get('value', [])
@@ -729,7 +729,7 @@ class AADInternals():
 			        <a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>
 		        </a:ReplyTo>
 		        <UserIdentityHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.get_token(scope="https://graph.windows.net/.default")}</BearerToken>
+			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.get_token(scope=["https://graph.windows.net/.default"])}</BearerToken>
 			        <LiveToken i:nil="true" xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService"/>
 		        </UserIdentityHeader>
 		        <ClientVersionHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
@@ -769,7 +769,7 @@ class AADInternals():
             <a:Action s:mustUnderstand="1">http://schemas.microsoft.com/online/aws/change/2010/01/IProvisioningWebService/{command}</a:Action>
             <SyncToken s:role="urn:microsoft.online.administrativeservice" xmlns="urn:microsoft.online.administrativeservice" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
                 <ApplicationId xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{applicationclient}</ApplicationId>
-                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token(scope="https://graph.windows.net/.default")}</BearerToken>
+                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token(scope=["https://graph.windows.net/.default"])}</BearerToken>
                 <ClientVersion xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_version}</ClientVersion>
                 <DirSyncBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</DirSyncBuildNumber>
                 <FIMBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</FIMBuildNumber>
