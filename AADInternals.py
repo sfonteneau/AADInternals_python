@@ -121,7 +121,8 @@ class AADInternals():
             select = "?$select=%s" % select
         response = requests.get(
             f"https://graph.microsoft.com/v1.0/{Command}{select}",
-            headers={"Authorization": f"Bearer {self.get_token(['https://graph.microsoft.com/.default'])}"}
+            headers={"Authorization": f"Bearer {self.get_token(['https://graph.microsoft.com/.default'])}"},
+            proxies=self.proxies
         )
         
         return response.json().get('value', [])
