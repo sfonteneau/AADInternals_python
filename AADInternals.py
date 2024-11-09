@@ -26,7 +26,7 @@ client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
 class AADInternals():
 
-    def __init__(self, proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None):
+    def __init__(self, proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None,verify=True):
         """
         Establish a connection with Microsoft and attempts to retrieve a token from Microsoft servers.
         Is initialization interactive if cache is not available : (M.F.A.)
@@ -37,6 +37,8 @@ class AADInternals():
             save_to_cache (bool): Define if the token give is backup in cache_file
             tenant_id (str): tenant id azure
             cache_file (str): Path to the cache_file (last token generated)
+            domain (str): domain name , use for search tenant_id if tenant_id = None
+            verify (str or Bool) : Allows you to specify SSL certificate verification when connecting to Microsoft servers. If `verify` is a path of type `str`, it must point to a certificate that will be used for SSL verification. If `verify` is of type `bool`, setting `True` enables certificate verification with the default certificate, while `False` disables all certificate verification.
 
         Returns:
             None
@@ -48,6 +50,7 @@ class AADInternals():
             return None
 
         self.proxies=proxies
+        self.verify = verify
         self.use_cache=use_cache
         self.save_to_cache=save_to_cache
         self.cache_file=cache_file
@@ -55,7 +58,8 @@ class AADInternals():
         self.requests_session_call_adsyncapi = requests.Session()
 
         if domain and (not tenant_id):
-            data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies).content.decode('utf-8')
+
+            data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies,verify=self.verify).content.decode('utf-8')
             tenant_id = json.loads(data)['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
 
         if not tenant_id:
@@ -81,6 +85,7 @@ class AADInternals():
             client_id,
             authority=f"https://login.microsoftonline.com/{tenant_id}",
             proxies=self.proxies,
+            verify=self.verify,
             token_cache=self.token_cache
         )
  
@@ -122,7 +127,8 @@ class AADInternals():
         response = requests.get(
             f"https://graph.microsoft.com/v1.0/{Command}{select}",
             headers={"Authorization": f"Bearer {self.get_token(['https://graph.microsoft.com/.default'])}"},
-            proxies=self.proxies
+            proxies=self.proxies,
+            verify=self.verify
         )
         
         return response.json().get('value', [])
@@ -803,7 +809,7 @@ class AADInternals():
         headers = {
             'Content-type': 'application/soap+xml'
         }
-        r = requests.post("https://provisioningapi.microsoftonline.com/provisioningwebservice.svc", headers=headers,data=envelope,proxies=self.proxies,timeout=15)
+        r = requests.post("https://provisioningapi.microsoftonline.com/provisioningwebservice.svc", headers=headers,data=envelope,proxies=self.proxies,timeout=15,verify=self.verify)
         return r.content
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L166
@@ -820,7 +826,7 @@ class AADInternals():
             "x-ms-aadmsods-appid":"1651564e-7ce4-4d99-88be-0a65050d8dc3",
             "x-ms-aadmsods-apiaction": command
         }
-        r = self.requests_session_call_adsyncapi.post("https://%s/provisioningservice.svc" % server, headers=headers,data=envelope,proxies=self.proxies)
+        r = self.requests_session_call_adsyncapi.post("https://%s/provisioningservice.svc" % server, headers=headers,data=envelope,proxies=self.proxies,verify=self.verify)
 
         return r.content
 
