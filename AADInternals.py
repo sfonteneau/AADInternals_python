@@ -59,8 +59,11 @@ class AADInternals():
 
         if domain and (not tenant_id):
 
-            data = requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies,verify=self.verify).content.decode('utf-8')
-            tenant_id = json.loads(data)['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
+            data = json.loads(requests.get('https://login.microsoftonline.com/%s/.well-known/openid-configuration' % domain,proxies=proxies,verify=self.verify).content.decode('utf-8'))
+            if data.get('error') == 'invalid_tenant':
+                print(data['error_description'])
+                sys.exit(1)
+            tenant_id = data['token_endpoint'].split('https://login.microsoftonline.com/')[1].split('/')[0]
 
         if not tenant_id:
             print('Error, Please provide tenant_id')
