@@ -122,19 +122,32 @@ class AADInternals():
                 self.token_cache.has_state_changed = False
         return token_response['access_token']
     
-    #https://github.com/Gerenios/AADInternals/blob/1561dc64568aa7c1a411e85d75ae2309c51d0633/GraphAPI_utils.ps1#L7
-    def call_graphapi(self,Command,select=''):
+    def call_graphapi(self, Command, select='', top=100):
+        results = []
+        url = f"https://graph.microsoft.com/v1.0/{Command}"
 
-        if select:
-            select = "?$select=%s" % select
-        response = requests.get(
-            f"https://graph.microsoft.com/v1.0/{Command}{select}",
-            headers={"Authorization": f"Bearer {self.get_token(['https://graph.microsoft.com/.default'])}"},
-            proxies=self.proxies,
-            verify=self.verify
-        )
-        
-        return response.json().get('value', [])
+        if select or top:
+            query = []
+            if select:
+                query.append(f"$select={select}")
+            if top:
+                query.append(f"$top={top}")
+            url += "?" + "&".join(query)
+
+        while url:
+            response = requests.get(
+                url,
+                headers={"Authorization": f"Bearer {self.get_token(['https://graph.microsoft.com/.default'])}"},
+                proxies=self.proxies,
+                verify=self.verify
+            )
+            data = response.json()
+
+            results.extend(data.get('value', []))
+
+            url = data.get('@odata.nextLink')
+
+        return results
     
 
     #https://github.com/Gerenios/AADInternals/blob/9cc2a3673248dbfaf0dccf960481e7830a395ea8/AzureADConnectAPI.ps1#L8
