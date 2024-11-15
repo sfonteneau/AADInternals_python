@@ -98,7 +98,7 @@ class AADInternals():
         if self.use_cache:
             #Add backwards compatibility
             if "refresh_token" in self.old_token:
-                token_response = self.app.acquire_token_by_refresh_token(refresh_token=old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
+                token_response = self.app.acquire_token_by_refresh_token(refresh_token=self.old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
                 self.old_token={}
 
             accounts = self.app.get_accounts()
