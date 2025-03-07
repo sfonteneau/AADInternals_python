@@ -878,6 +878,40 @@ class AADInternals():
         else:
             return ""
 
+    def set_desktop_sso_enabled(self,enable: bool = True):
+        tenant_id = self.tenant_id
+        url = f"https://{tenant_id}.registration.msappproxy.net/register/EnableDesktopSsoFlag"
+        token = self.get_token(scopes=['https://proxy.cloudwebappproxy.net/registerapp/.default'])
+        body = f'''<?xml version="1.0" encoding="utf-8"?>
+        <DesktopSsoEnablementRequest xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.RegistrationCommons.Registration" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+            <AuthenticationToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.Security.AadSecurity">{token}</AuthenticationToken>
+            <Enable>{str(enable).lower()}</Enable>
+        </DesktopSsoEnablementRequest>'''
+        headers = {'Content-Type': 'application/xml; charset=utf-8'}
+        response = xmltodict.parse( requests.post(url, data=body, headers=headers).content.decode('utf-8'))
+        if not response['DesktopSsoEnablementResult']['IsSuccessful']:
+            raise Exception (response['DesktopSsoEnablementResult']['ErrorMessage'])
+
+
+    def set_desktop_sso(self, domain_name: str, password: str, computer_name: str = "AZUREADSSOACC", enable: bool = True):
+        tenant_id = self.tenant_id
+        url = f"https://{tenant_id}.registration.msappproxy.net/register/EnableDesktopSso"
+        token = self.get_token(scopes=['https://proxy.cloudwebappproxy.net/registerapp/.default'])
+        body = f'''<?xml version="1.0" encoding="utf-8"?>
+        <DesktopSsoRequest xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.RegistrationCommons.Registration" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
+            <AuthenticationToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.Security.AadSecurity">{token}</AuthenticationToken>
+            <ComputerName>{computer_name}</ComputerName>
+            <DomainName>{domain_name}</DomainName>
+            <Enable>{str(enable).lower()}</Enable>
+            <Secret>{password}</Secret>
+        </DesktopSsoRequest>'''
+    
+        headers = {'Content-Type': 'application/xml; charset=utf-8'}
+        response = xmltodict.parse( requests.post(url, data=body, headers=headers).content.decode('utf-8'))
+        if not response['DesktopSsoEnablementResult']['IsSuccessful']:
+            raise Exception (response['DesktopSsoEnablementResult']['ErrorMessage'])
+
+
 
     def binarytoxml(self,binaryxml):
         fp = io.BytesIO(binaryxml)
