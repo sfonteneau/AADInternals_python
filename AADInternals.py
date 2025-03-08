@@ -888,7 +888,7 @@ class AADInternals():
             <Enable>{str(enable).lower()}</Enable>
         </DesktopSsoEnablementRequest>'''
         headers = {'Content-Type': 'application/xml; charset=utf-8'}
-        response = xmltodict.parse( requests.post(url, data=body, headers=headers).content.decode('utf-8'))
+        response = xmltodict.parse( requests.post(url, data=body, headers=headers,proxies=self.proxies,timeout=15,verify=self.verify).content.decode('utf-8'))
         if not response['DesktopSsoEnablementResult']['IsSuccessful']:
             raise Exception (response['DesktopSsoEnablementResult']['ErrorMessage'])
 
@@ -907,7 +907,7 @@ class AADInternals():
         </DesktopSsoRequest>'''
     
         headers = {'Content-Type': 'application/xml; charset=utf-8'}
-        response = xmltodict.parse( requests.post(url, data=body, headers=headers).content.decode('utf-8'))
+        response = xmltodict.parse( requests.post(url, data=body, headers=headers,proxies=self.proxies,timeout=15,verify=self.verify).content.decode('utf-8'))
         if not response['DesktopSsoEnablementResult']['IsSuccessful']:
             raise Exception (response['DesktopSsoEnablementResult']['ErrorMessage'])
 
