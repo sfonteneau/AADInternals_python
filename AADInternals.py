@@ -21,7 +21,7 @@ import xmltodict
 
 aadsync_server=        "adminwebservice.microsoftonline.com"
 aadsync_client_version="8.0"
-aadsync_client_build=  "2.2.8.0"
+aadsync_client_build=  "2.4.21.0"
 client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
 class AADInternals():
@@ -299,19 +299,25 @@ class AADInternals():
 
 
 
-    #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L3404
+    #https://github.com/microsoftgraph/entra-powershell/blob/af0c8b538d293390ce0c2fafe30b95259cdcf774/module/Entra/Microsoft.Entra/DirectoryManagement/Set-EntraDirSyncEnabled.ps1#L44
     def set_adsyncenabled(self,enabledirsync=True):
-        """
-        Enables or disables directory synchronization using provisioning API.
-        Enabling / disabling the synchrnoization usually takes less than 10 seconds. Check the status using Get-AADIntCompanyInformation.
-        """
-        body = '''<b:EnableDirSync>%s</b:EnableDirSync>''' % str(bool(enabledirsync)).lower()
-        command = "SetCompanyDirSyncEnabled"
-        envelope  = self.create_envelope(command,body)
-        response = self.call_provisioningapi(envelope)
-        return self.xml_to_result(response,command)
 
+        url = f"https://graph.microsoft.com/v1.0/organization/{self.tenant_id}"
+        token = self.get_token(['https://graph.microsoft.com/.default'])
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
 
+        body = {"OnPremisesSyncEnabled": enabledirsync}
+        
+        response = requests.patch(url, json=body, headers=headers,proxies=self.proxies)
+        
+        if response.status_code == 204:
+            return
+        else:
+            raise Exception (response.content)
+    
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L5561
     def set_userlicenses(self,objectid):
         body = rf'''<b:AddLicenses i:nil="true"/>
