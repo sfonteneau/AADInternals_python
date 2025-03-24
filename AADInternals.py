@@ -311,7 +311,7 @@ class AADInternals():
 
         body = {"OnPremisesSyncEnabled": enabledirsync}
         
-        response = requests.patch(url, json=body, headers=headers,proxies=self.proxies)
+        response = requests.patch(url, json=body, headers=headers,proxies=self.proxies,verify=self.verify)
         
         if response.status_code == 204:
             return
