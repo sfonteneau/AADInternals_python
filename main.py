@@ -14,9 +14,7 @@ def main():
     parser.add_argument("--domain", type=str, help="Domain name")
     parser.add_argument("--tenant_id", type=str, help="Azure AD tenant ID")
     parser.add_argument("--proxies", type=dict, default={}, help="Dictionary of proxies")
-    parser.add_argument("--use_cache", type=bool, default=True, help="Use cache")
-    parser.add_argument("--save_to_cache", type=bool, default=True, help="Save to cache")
-    parser.add_argument("--cache_file", type=str, default=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'last_token.json'), help="Cache file")
+    parser.add_argument("--cache_file", type=str, default=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'last_token.json'), help="Base path for the PFX state directory (no token file is created)")
 
     # Create a subparser for each method
     subparsers = parser.add_subparsers(dest="method", help="Available methods in AADInternals")
@@ -26,6 +24,8 @@ def main():
     
     # Create a subparser with help for each method
     for method_name, method in inspect.getmembers(temp_aad, predicate=inspect.ismethod):
+        if method_name.startswith("_"):
+            continue
         method_parser = subparsers.add_parser(method_name, help=f"Help for {method_name}")
 
         # Add specific arguments for each method
@@ -40,8 +40,6 @@ def main():
     # Initialize AADInternals with the base arguments
     aad = AADInternals(
         proxies=args.proxies,
-        use_cache=args.use_cache,
-        save_to_cache=args.save_to_cache,
         tenant_id=args.tenant_id,
         cache_file=args.cache_file,
         domain=args.domain
@@ -59,12 +57,14 @@ def main():
             if param_name in vars(args) and vars(args)[param_name] is not None:
                 method_params[param_name] = vars(args)[param_name]
 
-        # Debug output
-        print(f"Calling method: {args.method} with parameters: {method_params}")
-        
-        # Call the method with relevant parameters
+        # Avoid leaking secrets in logs, CLI output or captured service output.
+        print(f"Calling method: {args.method}")
+
         result = method(**method_params)
-        print(result)
+        if args.method == "get_token":
+            print("Token acquired (not displayed)")
+        else:
+            print(result)
     else:
         print(f"The method '{args.method}' does not exist in AADInternals.")
 

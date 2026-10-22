@@ -2,3 +2,5 @@ msal
 requests
 passlib
 xmltodict
+cryptography0
+PyJWT

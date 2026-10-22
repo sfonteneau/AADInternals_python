@@ -4,6 +4,9 @@ import msal
 import json
 import sys
 import os
+from pathlib import Path
+import logging
+from xml.sax.saxutils import escape as xml_escape
 
 if "__file__" in locals():
     sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'python_wcfbin'))
@@ -22,21 +25,23 @@ import xmltodict
 aadsync_server=        "adminwebservice.microsoftonline.com"
 aadsync_client_version="8.0"
 aadsync_client_build=  "2.6.84.0"
+SYNC_SCOPE = "6bf85cfa-ac8a-4be5-b5de-425a0d0dc016/.default"
+GRAPH_SCOPE = "https://graph.microsoft.com/.default"
+SSO_SCOPE = "https://proxy.cloudwebappproxy.net/registerapp/.default"
 client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
 class AADInternals():
 
-    def __init__(self, proxies={},use_cache=True,save_to_cache=True,tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None,verify=True):
+    def __init__(self, proxies={},tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None,verify=True):
         """
-        Establish a connection with Microsoft and attempts to retrieve a token from Microsoft servers.
-        Is initialization interactive if cache is not available : (M.F.A.)
+        Initialize the certificate identity for ABA and Graph application access.
+        SSO and DirSync admin tokens are acquired separately and remain in RAM.
 
         Args:
             proxies (dict): Specify proxies if needed.
-            use_cache (bool): Define if the cache_file is used (last token generated if exists)
-            save_to_cache (bool): Define if the token give is backup in cache_file
             tenant_id (str): tenant id azure
-            cache_file (str): Path to the cache_file (last token generated)
+            cache_file (str): Base path used only to locate the certificate state directory.
+                              The named file itself is never read or written.
             domain (str): domain name , use for search tenant_id if tenant_id = None
             verify (str or Bool) : Allows you to specify SSL certificate verification when connecting to Microsoft servers. If `verify` is a path of type `str`, it must point to a certificate that will be used for SSL verification. If `verify` is of type `bool`, setting `True` enables certificate verification with the default certificate, while `False` disables all certificate verification.
 
@@ -51,8 +56,6 @@ class AADInternals():
 
         self.proxies=proxies
         self.verify = verify
-        self.use_cache=use_cache
-        self.save_to_cache=save_to_cache
         self.cache_file=cache_file
 
         self.requests_session_call_adsyncapi = requests.Session()
@@ -70,58 +73,159 @@ class AADInternals():
             sys.exit(1)
 
         self.tenant_id = tenant_id
+        # DirSync delegated Graph credentials remain in memory only.
+        self.dirsync_app = None
+        self.dirsync_token_cache = None
 
-        if self.use_cache:
-            self.old_token={}
-            self.token_cache = msal.SerializableTokenCache()
-            if os.path.isfile(self.cache_file) :
-                with open(self.cache_file,'r') as f:
-                    data= f.read()
-                    self.token_cache.deserialize(data)
-                    self.old_token=json.loads(data)
-                    if "refresh_token" in self.old_token:
-                        self.token_cache = msal.SerializableTokenCache()
-        else:
-            self.token_cache = msal.TokenCache()
-
-        self.app = msal.PublicClientApplication(
-            client_id,
+        from _aad_certificate_manager import ensure_identity
+        base = Path(os.environ.get("ENTRA_SYNC_STATE_DIR") or
+                    (Path(self.cache_file).expanduser().absolute().parent / "entra_aba"))
+        identity = ensure_identity(base, tenant_id, proxies=self.proxies, verify=self.verify)
+        self.app = msal.ConfidentialClientApplication(
+            identity["app_id"],
             authority=f"https://login.microsoftonline.com/{tenant_id}",
+            client_credential={
+                "private_key_pfx_path": str(identity["pfx_path"]),
+                "passphrase": identity["passphrase"],
+            },
             proxies=self.proxies,
             verify=self.verify,
-            token_cache=self.token_cache
         )
- 
-    def get_token(self,scopes=["https://graph.windows.net/.default"]):
-        token_response = None
-    
-        if self.use_cache:
-            #Add backwards compatibility
-            if "refresh_token" in self.old_token:
-                token_response = self.app.acquire_token_by_refresh_token(refresh_token=self.old_token['refresh_token'],scopes=["https://graph.windows.net/.default"])
-                self.old_token={}
 
-            accounts = self.app.get_accounts()
-            for account in accounts:
-                if account['realm'] != self.tenant_id:
-                    continue
-                result = self.app.acquire_token_silent(scopes=scopes, account=account)
-                if result:
-                    token_response = result
-                    break
-        
-        if not token_response :
-            flow = self.app.initiate_device_flow(scopes=scopes)
-            print(flow["message"]) 
-            token_response = self.app.acquire_token_by_device_flow(flow)
-    
-        if self.save_to_cache:
-            if self.token_cache.has_state_changed:
-                with open(self.cache_file,'w') as f:
-                    f.write(self.token_cache.serialize())
-                self.token_cache.has_state_changed = False
-        return token_response['access_token']
-    
+        # SSO delegated credentials are isolated from the PFX and held in RAM only.
+        self.sso_app = None
+        self.sso_token_cache = None
+
+    def get_token(self, scopes=None):
+        if scopes is None:
+            scopes = [SYNC_SCOPE]
+        if scopes == [SYNC_SCOPE]:
+            scope = SYNC_SCOPE
+        elif scopes == [GRAPH_SCOPE]:
+            scope = GRAPH_SCOPE
+        elif scopes == [SSO_SCOPE]:
+            return self._get_sso_token()
+        else:
+            raise RuntimeError("Unsupported token scope: " + repr(scopes))
+        result = self.app.acquire_token_for_client(scopes=[scope])
+        if "access_token" not in result:
+            raise RuntimeError("Entra application authentication failed: " +
+                str(result.get("error", "unknown")) + ": " +
+                str(result.get("error_description", "no details")))
+        return result["access_token"]
+
+    def _initialize_sso_client(self):
+        """Create a delegated SSO client with a strictly in-memory MSAL cache."""
+        if self.sso_app is not None:
+            return
+        cache = msal.TokenCache()
+        self.sso_token_cache = cache
+        self.sso_app = msal.PublicClientApplication(
+            client_id=os.getenv("ENTRA_SSO_PUBLIC_CLIENT_ID", client_id),
+            authority=f"https://login.microsoftonline.com/{self.tenant_id}",
+            proxies=self.proxies,
+            verify=self.verify,
+            token_cache=cache,
+        )
+
+    def _get_sso_token(self):
+        """Get a delegated admin token for SSO without disk persistence.
+
+        Silent re-use is limited to this AADInternals instance and process.
+        After restart, a new interactive admin authentication is mandatory.
+        """
+        self._initialize_sso_client()
+        response = None
+        for account in self.sso_app.get_accounts():
+            if str(account.get("realm", "")).lower() != str(self.tenant_id).lower():
+                continue
+            candidate = self.sso_app.acquire_token_silent(scopes=[SSO_SCOPE], account=account)
+            if candidate and "access_token" in candidate:
+                response = candidate
+                break
+        if response is None:
+            if not sys.stdin.isatty():
+                raise RuntimeError(
+                    "SSO AZUREADSSOACC : nouvelle connexion administrateur requise "
+                    "depuis un terminal interactif. Aucun jeton SSO n'est conserve "
+                    "sur disque ; un nouveau processus doit se reauthentifier."
+                )
+            flow = self.sso_app.initiate_device_flow(scopes=[SSO_SCOPE])
+            if "user_code" not in flow:
+                raise RuntimeError("Impossible de demarrer l'authentification admin SSO : " +
+                                   str(flow.get("error_description", flow.get("error", "unknown"))))
+            print(flow["message"])
+            response = self.sso_app.acquire_token_by_device_flow(flow)
+        if "access_token" not in response:
+            raise RuntimeError("Authentification SSO refusee : " +
+                               str(response.get("error", "unknown")) + " - " +
+                               str(response.get("error_description", "no details")))
+        return response["access_token"]
+
+    def _initialize_dirsync_client(self):
+        """Create a delegated Graph client with an in-memory-only MSAL cache."""
+        if self.dirsync_app is not None:
+            return
+        cache = msal.TokenCache()
+        self.dirsync_token_cache = cache
+        self.dirsync_app = msal.PublicClientApplication(
+            client_id=os.getenv("ENTRA_DIRSYNC_PUBLIC_CLIENT_ID", client_id),
+            authority=f"https://login.microsoftonline.com/{self.tenant_id}",
+            proxies=self.proxies, verify=self.verify, token_cache=cache,
+        )
+
+    def _get_dirsync_admin_token(self):
+        """Get a delegated Graph admin token; keep it only in process memory.
+
+        Does not access the certificate app, last_token.json or the SSO cache.
+        A new process must authenticate interactively again.
+        """
+        self._initialize_dirsync_client()
+        scopes = [GRAPH_SCOPE]
+        result = None
+        for account in self.dirsync_app.get_accounts():
+            if str(account.get("realm", "")).lower() != str(self.tenant_id).lower():
+                continue
+            candidate = self.dirsync_app.acquire_token_silent(scopes=scopes, account=account)
+            if candidate and "access_token" in candidate:
+                result = candidate
+                break
+        if not result:
+            if not sys.stdin.isatty():
+                raise RuntimeError(
+                    "DirSync Graph : jeton admin delegue absent en memoire. "
+                    "Executer l'operation depuis un terminal interactif ; "
+                    "aucun jeton DirSync n'est conserve sur disque."
+                )
+            flow = self.dirsync_app.initiate_device_flow(scopes=scopes)
+            if "user_code" not in flow:
+                raise RuntimeError("Authentification admin DirSync impossible : " +
+                                   str(flow.get("error_description", flow.get("error", "unknown"))))
+            print(flow["message"])
+            result = self.dirsync_app.acquire_token_by_device_flow(flow)
+        if "access_token" not in result:
+            raise RuntimeError("Authentification Graph DirSync refusee : " +
+                               str(result.get("error", "unknown")) + " - " +
+                               str(result.get("error_description", "no details")))
+        return result["access_token"]
+
+    @staticmethod
+    def _check_sso_response(response):
+        """Do not update the local Kerberos password after a cloud-side failure."""
+        response.raise_for_status()
+        try:
+            result = xmltodict.parse(response.content)
+            detail = result.get("DesktopSsoEnablementResult")
+            if detail is None:
+                detail = result.get("DesktopSsoResult")
+            if not isinstance(detail, dict):
+                raise RuntimeError("Reponse du service SSO inattendue (pas de resultat valide)")
+            if str(detail.get("IsSuccessful", "")).strip().lower() not in ("true", "1"):
+                raise RuntimeError("Service SSO Microsoft : " +
+                                   str(detail.get("ErrorMessage") or "operation refusee"))
+        except (ValueError, TypeError, KeyError) as exc:
+            raise RuntimeError("Reponse SSO Microsoft non analysable") from exc
+
     def call_graphapi(self, Command, select='', top=100):
         results = []
         url = f"https://graph.microsoft.com/v1.0/{Command}"
@@ -141,9 +245,12 @@ class AADInternals():
                 proxies=self.proxies,
                 verify=self.verify
             )
+            response.raise_for_status()
             data = response.json()
-
-            results.extend(data.get('value', []))
+            # The regular list endpoints must have a 'value' array.
+            if not isinstance(data.get('value'), list):
+                raise RuntimeError("Microsoft Graph response is missing the value array")
+            results.extend(data['value'])
 
             url = data.get('@odata.nextLink')
 
@@ -299,25 +406,37 @@ class AADInternals():
 
 
 
-    #https://github.com/microsoftgraph/entra-powershell/blob/af0c8b538d293390ce0c2fafe30b95259cdcf774/module/Entra/Microsoft.Entra/DirectoryManagement/Set-EntraDirSyncEnabled.ps1#L44
-    def set_adsyncenabled(self,enabledirsync=True):
+    # https://github.com/microsoftgraph/entra-powershell/blob/af0c8b538d293390ce0c2fafe30b95259cdcf774/module/Entra/Microsoft.Entra/DirectoryManagement/Set-EntraDirSyncEnabled.ps1#L44
+    def set_adsyncenabled(self, enabledirsync=True):
+        """Set the organization-wide DirSync flag with a delegated admin token.
 
-        url = f"https://graph.microsoft.com/v1.0/organization/{self.tenant_id}"
-        token = self.get_token(['https://graph.microsoft.com/.default'])
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json"
-        }
+        The default certificate application does not have Graph
+        Organization.ReadWrite.All. Do not use self.get_token([GRAPH_SCOPE])
+        in application mode: that token is an app-only token.
+        """
+        if isinstance(enabledirsync, str):
+            if enabledirsync.lower() not in ("true", "false"):
+                raise ValueError("enabledirsync doit etre true ou false")
+            enabledirsync = enabledirsync.lower() == "true"
+        elif not isinstance(enabledirsync, bool):
+            raise TypeError("enabledirsync doit etre un booleen")
 
-        body = {"OnPremisesSyncEnabled": enabledirsync}
-        
-        response = requests.patch(url, json=body, headers=headers,proxies=self.proxies,verify=self.verify)
-        
-        if response.status_code == 204:
-            return
-        else:
-            raise Exception (response.content)
-    
+        token = self._get_dirsync_admin_token()
+        response = requests.patch(
+            f"https://graph.microsoft.com/v1.0/organization/{self.tenant_id}",
+            json={"OnPremisesSyncEnabled": enabledirsync},
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            proxies=self.proxies, verify=self.verify, timeout=30,
+        )
+        if response.status_code != 204:
+            # Avoid including the Bearer token in errors, but keep Graph's
+            # response to distinguish missing permissions from other errors.
+            raise RuntimeError(
+                f"Modification DirSync refusee (HTTP {response.status_code}) : "
+                f"{response.text[:700]}. Verifier le role administrateur et "
+                "les permissions Graph Organization.ReadWrite.All."
+            )
+
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L5561
     def set_userlicenses(self,objectid):
         body = rf'''<b:AddLicenses i:nil="true"/>
@@ -748,41 +867,8 @@ class AADInternals():
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI_utils.ps1#L64
     def create_envelope(self,command,requestelements):
-        message_id = str(uuid.uuid4())
-        envelope = rf'''
-        <s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:a="http://www.w3.org/2005/08/addressing">
-	        <s:Header>
-		        <a:Action s:mustUnderstand="1">http://provisioning.microsoftonline.com/IProvisioningWebService/{command}</a:Action>
-		        <a:MessageID>urn:uuid:{message_id}</a:MessageID>
-		        <a:ReplyTo>
-			        <a:Address>http://www.w3.org/2005/08/addressing/anonymous</a:Address>
-		        </a:ReplyTo>
-		        <UserIdentityHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-			        <BearerToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Bearer {self.get_token(scopes=["https://graph.windows.net/.default"])}</BearerToken>
-			        <LiveToken i:nil="true" xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService"/>
-		        </UserIdentityHeader>
-		        <ClientVersionHeader xmlns="http://provisioning.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-			        <ClientId xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">50afce61-c917-435b-8c6d-60aa5a8b8aa7</ClientId>
-			        <Version xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">1.2.183.17</Version>
-		        </ClientVersionHeader>
-		        <ContractVersionHeader xmlns="http://becwebservice.microsoftonline.com/" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-			        <BecVersion xmlns="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService">Version47</BecVersion>
-		        </ContractVersionHeader>
-		        <a:To s:mustUnderstand="1">https://provisioningapi.microsoftonline.com/provisioningwebservice.svc</a:To>
-	        </s:Header>
-	        <s:Body>
-                <{command} xmlns="http://provisioning.microsoftonline.com/">
-			        <request xmlns:b="http://schemas.datacontract.org/2004/07/Microsoft.Online.Administration.WebService" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
-                        <b:BecVersion>Version16</b:BecVersion>
-                        <b:TenantId>{self.tenant_id}</b:TenantId>
-                        <b:VerifiedDomain i:nil="true"/>
-		                {requestelements}
-                    </request>
-                </{command}>
-	        </s:Body>
-        </s:Envelope>
-        '''
-        return envelope
+        """This API requires authentication not provided by the certificate client."""
+        raise RuntimeError("Provisioning SOAP API is not supported by certificate authentication")
 
 
     #https://github.com/Gerenios/AADInternals/blob/b135545d50a5a473c942139182265850f9d256c2/AzureADConnectAPI_utils.ps1#L77
@@ -798,7 +884,7 @@ class AADInternals():
             <a:Action s:mustUnderstand="1">http://schemas.microsoft.com/online/aws/change/2010/01/IProvisioningWebService/{command}</a:Action>
             <SyncToken s:role="urn:microsoft.online.administrativeservice" xmlns="urn:microsoft.online.administrativeservice" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
                 <ApplicationId xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{applicationclient}</ApplicationId>
-                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token(scopes=["https://graph.windows.net/.default"])}</BearerToken>
+                <BearerToken xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{self.get_token(scopes=[SYNC_SCOPE])}</BearerToken>
                 <ClientVersion xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_version}</ClientVersion>
                 <DirSyncBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</DirSyncBuildNumber>
                 <FIMBuildNumber xmlns="http://schemas.microsoft.com/online/aws/change/2010/01">{aadsync_client_build}</FIMBuildNumber>
@@ -887,35 +973,33 @@ class AADInternals():
     def set_desktop_sso_enabled(self,enable: bool = True):
         tenant_id = self.tenant_id
         url = f"https://{tenant_id}.registration.msappproxy.net/register/EnableDesktopSsoFlag"
-        token = self.get_token(scopes=['https://proxy.cloudwebappproxy.net/registerapp/.default'])
+        token = self.get_token(scopes=[SSO_SCOPE])
         body = f'''<?xml version="1.0" encoding="utf-8"?>
         <DesktopSsoEnablementRequest xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.RegistrationCommons.Registration" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
             <AuthenticationToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.Security.AadSecurity">{token}</AuthenticationToken>
             <Enable>{str(enable).lower()}</Enable>
         </DesktopSsoEnablementRequest>'''
         headers = {'Content-Type': 'application/xml; charset=utf-8'}
-        response = xmltodict.parse( requests.post(url, data=body, headers=headers,proxies=self.proxies,timeout=15,verify=self.verify).content.decode('utf-8'))
-        if not response['DesktopSsoEnablementResult']['IsSuccessful']:
-            raise Exception (response['DesktopSsoEnablementResult']['ErrorMessage'])
-
+        response = requests.post(url, data=body, headers=headers,
+                                 proxies=self.proxies, timeout=15, verify=self.verify)
+        self._check_sso_response(response)
 
     def set_desktop_sso(self, domain_name: str, password: str, computer_name: str = "AZUREADSSOACC", enable: bool = True):
         tenant_id = self.tenant_id
         url = f"https://{tenant_id}.registration.msappproxy.net/register/EnableDesktopSso"
-        token = self.get_token(scopes=['https://proxy.cloudwebappproxy.net/registerapp/.default'])
+        token = self.get_token(scopes=[SSO_SCOPE])
         body = f'''<?xml version="1.0" encoding="utf-8"?>
         <DesktopSsoRequest xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.RegistrationCommons.Registration" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">
             <AuthenticationToken xmlns="http://schemas.datacontract.org/2004/07/Microsoft.ApplicationProxy.Common.Security.AadSecurity">{token}</AuthenticationToken>
-            <ComputerName>{computer_name}</ComputerName>
-            <DomainName>{domain_name}</DomainName>
+            <ComputerName>{xml_escape(computer_name)}</ComputerName>
+            <DomainName>{xml_escape(domain_name)}</DomainName>
             <Enable>{str(enable).lower()}</Enable>
-            <Secret>{password}</Secret>
+            <Secret>{xml_escape(password)}</Secret>
         </DesktopSsoRequest>'''
-    
         headers = {'Content-Type': 'application/xml; charset=utf-8'}
-        response = xmltodict.parse( requests.post(url, data=body, headers=headers,proxies=self.proxies,timeout=15,verify=self.verify).content.decode('utf-8'))
-        if not response['DesktopSsoEnablementResult']['IsSuccessful']:
-            raise Exception (response['DesktopSsoEnablementResult']['ErrorMessage'])
+        response = requests.post(url, data=body, headers=headers,
+                                 proxies=self.proxies, timeout=15, verify=self.verify)
+        self._check_sso_response(response)
 
 
 
