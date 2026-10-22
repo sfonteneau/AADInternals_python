@@ -2,9 +2,9 @@
 
 Reimplementation of part of the AAdinternals (https://github.com/Gerenios/AADInternals) project.
 
-this project focuses on the synchronization of users, groups and password "azure ad"
+This project focuses on synchronizing users, groups, and password hashes with Microsoft Entra ID.
 
-Please note that this project uses Microsoft APIs not officially documented. Microsoft may break compatibility at any time
+This project uses undocumented Microsoft APIs. Microsoft may change or remove them at any time.
 
 
 # Install Notes
@@ -15,7 +15,7 @@ cd AADInternals_python
 git submodule update --progress --init -- "python_wcfbin"
 ```
 
-Install dependency 
+Install dependencies
 -----------------------------
 
 ```
@@ -23,15 +23,15 @@ apt-get install python3-passlib python3-xmltodict python3-requests python3-msal 
 ```
 
 
-If you are not under debian or if you do not have the packages available :
+If you are not using Debian, or if these packages are not available:
 
 ```
 pip3 install -r requirements.txt
 ```
 
-# Use main 
+# Use the CLI
 
-Exemple:
+Example:
 
 ```
 python3 main.py -help

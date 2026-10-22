@@ -144,18 +144,18 @@ class AADInternals():
         if response is None:
             if not sys.stdin.isatty():
                 raise RuntimeError(
-                    "SSO AZUREADSSOACC : nouvelle connexion administrateur requise "
-                    "depuis un terminal interactif. Aucun jeton SSO n'est conserve "
-                    "sur disque ; un nouveau processus doit se reauthentifier."
+                    "SSO AZUREADSSOACC: a new administrator sign-in is required "
+                    "from an interactive terminal. No SSO token is stored "
+                    "on disk; each new process must authenticate again."
                 )
             flow = self.sso_app.initiate_device_flow(scopes=[SSO_SCOPE])
             if "user_code" not in flow:
-                raise RuntimeError("Impossible de demarrer l'authentification admin SSO : " +
+                raise RuntimeError("Unable to start SSO administrator authentication: " +
                                    str(flow.get("error_description", flow.get("error", "unknown"))))
             print(flow["message"])
             response = self.sso_app.acquire_token_by_device_flow(flow)
         if "access_token" not in response:
-            raise RuntimeError("Authentification SSO refusee : " +
+            raise RuntimeError("SSO authentication rejected: " +
                                str(response.get("error", "unknown")) + " - " +
                                str(response.get("error_description", "no details")))
         return response["access_token"]
@@ -191,18 +191,18 @@ class AADInternals():
         if not result:
             if not sys.stdin.isatty():
                 raise RuntimeError(
-                    "DirSync Graph : jeton admin delegue absent en memoire. "
-                    "Executer l'operation depuis un terminal interactif ; "
-                    "aucun jeton DirSync n'est conserve sur disque."
+                    "DirSync Graph: no delegated administrator token available in memory. "
+                    "Run this operation from an interactive terminal; "
+                    "no DirSync token is stored on disk."
                 )
             flow = self.dirsync_app.initiate_device_flow(scopes=scopes)
             if "user_code" not in flow:
-                raise RuntimeError("Authentification admin DirSync impossible : " +
+                raise RuntimeError("Unable to start DirSync administrator authentication: " +
                                    str(flow.get("error_description", flow.get("error", "unknown"))))
             print(flow["message"])
             result = self.dirsync_app.acquire_token_by_device_flow(flow)
         if "access_token" not in result:
-            raise RuntimeError("Authentification Graph DirSync refusee : " +
+            raise RuntimeError("DirSync Graph authentication rejected: " +
                                str(result.get("error", "unknown")) + " - " +
                                str(result.get("error_description", "no details")))
         return result["access_token"]
@@ -217,12 +217,12 @@ class AADInternals():
             if detail is None:
                 detail = result.get("DesktopSsoResult")
             if not isinstance(detail, dict):
-                raise RuntimeError("Reponse du service SSO inattendue (pas de resultat valide)")
+                raise RuntimeError("Unexpected response from the SSO service (no valid result)")
             if str(detail.get("IsSuccessful", "")).strip().lower() not in ("true", "1"):
-                raise RuntimeError("Service SSO Microsoft : " +
-                                   str(detail.get("ErrorMessage") or "operation refusee"))
+                raise RuntimeError("Microsoft SSO service: " +
+                                   str(detail.get("ErrorMessage") or "operation rejected"))
         except (ValueError, TypeError, KeyError) as exc:
-            raise RuntimeError("Reponse SSO Microsoft non analysable") from exc
+            raise RuntimeError("Unable to parse the Microsoft SSO response") from exc
 
     def call_graphapi(self, Command, select='', top=100):
         results = []
@@ -414,10 +414,10 @@ class AADInternals():
         """
         if isinstance(enabledirsync, str):
             if enabledirsync.lower() not in ("true", "false"):
-                raise ValueError("enabledirsync doit etre true ou false")
+                raise ValueError("enabledirsync must be true or false")
             enabledirsync = enabledirsync.lower() == "true"
         elif not isinstance(enabledirsync, bool):
-            raise TypeError("enabledirsync doit etre un booleen")
+            raise TypeError("enabledirsync must be a boolean")
 
         token = self._get_dirsync_admin_token()
         response = requests.patch(
@@ -430,9 +430,9 @@ class AADInternals():
             # Avoid including the Bearer token in errors, but keep Graph's
             # response to distinguish missing permissions from other errors.
             raise RuntimeError(
-                f"Modification DirSync refusee (HTTP {response.status_code}) : "
-                f"{response.text[:700]}. Verifier le role administrateur et "
-                "les permissions Graph Organization.ReadWrite.All."
+                f"DirSync update rejected (HTTP {response.status_code}): "
+                f"{response.text[:700]}. Check the administrator role and "
+                "the Graph Organization.ReadWrite.All permissions."
             )
 
     #https://github.com/Gerenios/AADInternals/blob/fd6474e840f457c32a297cadbad051cabe2a019b/ProvisioningAPI.ps1#L5561

@@ -13,7 +13,7 @@ def main():
     parser.add_argument("--domain", type=str, help="Domain name")
     parser.add_argument("--tenant_id", type=str, help="Azure AD tenant ID")
     parser.add_argument("--proxies", type=dict, default={}, help="Dictionary of proxies")
-    parser.add_argument("--entra_aba_dir", type=str, default="/root/entra_aba", help="Dossier de l'identite PFX (defaut : /root/entra_aba)")
+    parser.add_argument("--entra_aba_dir", type=str, default="/root/entra_aba", help="PFX identity directory (default: /root/entra_aba)")
 
     # Create a subparser for each method
     subparsers = parser.add_subparsers(dest="method", help="Available methods in AADInternals")
