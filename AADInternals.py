@@ -32,7 +32,7 @@ client_id = "04b07795-8ddb-461a-bbee-02f9e1bf7b46"
 
 class AADInternals():
 
-    def __init__(self, proxies={},tenant_id=None,cache_file=os.path.join(os.path.dirname(os.path.realpath(__file__)),'last_token.json'),domain=None,verify=True):
+    def __init__(self, proxies={}, tenant_id=None, domain=None, verify=True, entra_aba_dir="/root/entra_aba"):
         """
         Initialize the certificate identity for ABA and Graph application access.
         SSO and DirSync admin tokens are acquired separately and remain in RAM.
@@ -40,8 +40,7 @@ class AADInternals():
         Args:
             proxies (dict): Specify proxies if needed.
             tenant_id (str): tenant id azure
-            cache_file (str): Base path used only to locate the certificate state directory.
-                              The named file itself is never read or written.
+            entra_aba_dir (str or Path): PFX identity folder (default: /root/entra_aba).
             domain (str): domain name , use for search tenant_id if tenant_id = None
             verify (str or Bool) : Allows you to specify SSL certificate verification when connecting to Microsoft servers. If `verify` is a path of type `str`, it must point to a certificate that will be used for SSL verification. If `verify` is of type `bool`, setting `True` enables certificate verification with the default certificate, while `False` disables all certificate verification.
 
@@ -56,7 +55,7 @@ class AADInternals():
 
         self.proxies=proxies
         self.verify = verify
-        self.cache_file=cache_file
+        self.entra_aba_dir = Path(entra_aba_dir).expanduser().resolve()
 
         self.requests_session_call_adsyncapi = requests.Session()
 
@@ -78,9 +77,8 @@ class AADInternals():
         self.dirsync_token_cache = None
 
         from _aad_certificate_manager import ensure_identity
-        base = Path(os.environ.get("ENTRA_SYNC_STATE_DIR") or
-                    (Path(self.cache_file).expanduser().absolute().parent / "entra_aba"))
-        identity = ensure_identity(base, tenant_id, proxies=self.proxies, verify=self.verify)
+        identity = ensure_identity(self.entra_aba_dir, tenant_id,
+                                   proxies=self.proxies, verify=self.verify)
         self.app = msal.ConfidentialClientApplication(
             identity["app_id"],
             authority=f"https://login.microsoftonline.com/{tenant_id}",

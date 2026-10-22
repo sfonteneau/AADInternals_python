@@ -566,7 +566,7 @@ def verify(base: Path):
 def main():
     parser = argparse.ArgumentParser(description="Gestion des identites d'application pour le projet Samba4 Entra Sync")
     parser.add_argument("command", choices=("plan", "bootstrap", "status", "verify", "rotate", "cleanup"))
-    parser.add_argument("--state-dir", type=Path, default=Path("/etc/azureconf/entra_aba"))
+    parser.add_argument("--state-dir", type=Path, default=Path("/root/entra_aba"))
     parser.add_argument("--tenant-id", help="GUID du tenant (obligatoire pour bootstrap)")
     parser.add_argument("--name", default="Samba4-Python-Entra-Sync")
     parser.add_argument("--admin-client-id", default=ADMIN_CLIENT_ID, help="Client public pour l'amorcage uniquement")

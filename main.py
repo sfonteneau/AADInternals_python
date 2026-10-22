@@ -1,7 +1,6 @@
 import logging
 import argparse
 import inspect
-import os
 from AADInternals import AADInternals
 
 logging.getLogger("adal-python").setLevel(logging.WARN)
@@ -14,7 +13,7 @@ def main():
     parser.add_argument("--domain", type=str, help="Domain name")
     parser.add_argument("--tenant_id", type=str, help="Azure AD tenant ID")
     parser.add_argument("--proxies", type=dict, default={}, help="Dictionary of proxies")
-    parser.add_argument("--cache_file", type=str, default=os.path.join(os.path.dirname(os.path.realpath(__file__)), 'last_token.json'), help="Base path for the PFX state directory (no token file is created)")
+    parser.add_argument("--entra_aba_dir", type=str, default="/root/entra_aba", help="Dossier de l'identite PFX (defaut : /root/entra_aba)")
 
     # Create a subparser for each method
     subparsers = parser.add_subparsers(dest="method", help="Available methods in AADInternals")
@@ -41,7 +40,7 @@ def main():
     aad = AADInternals(
         proxies=args.proxies,
         tenant_id=args.tenant_id,
-        cache_file=args.cache_file,
+        entra_aba_dir=args.entra_aba_dir,
         domain=args.domain
     )
     
