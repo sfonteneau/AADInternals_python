@@ -19,11 +19,11 @@ Install dependencies
 -----------------------------
 
 ```
-apt-get install python3-passlib python3-xmltodict python3-requests python3-msal -y
+apt-get install -y python3-passlib python3-xmltodict python3-requests python3-msal python3-cryptography python3-jwt
 ```
 
 
-If you are not using Debian, or if these packages are not available:
+For Debian 12 or older Python packages, use a virtual environment 
 
 ```
 pip3 install -r requirements.txt
